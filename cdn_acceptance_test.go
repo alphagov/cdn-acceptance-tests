@@ -31,6 +31,11 @@ func TestProtocolRedirect(t *testing.T) {
 	t.Error("Not implemented test to confirm that it doesn't hit origin")
 }
 
+// Should return 403 for PURGE requests from IPs not in the whitelist.
+func TestRestrictPurgeRequests(t *testing.T) {
+	t.Error("Not implemented")
+}
+
 // Should create an X-Forwarded-For header containing the client's IP.
 func TestHeaderCreateXFF(t *testing.T) {
 	t.Error("Not implemented")
