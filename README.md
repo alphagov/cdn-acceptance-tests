@@ -8,3 +8,15 @@ clients and servers from [net/http][net/http].
 
 [testing]: http://golang.org/pkg/testing/
 [net/http]: http://golang.org/pkg/net/http/
+
+## Running
+
+You will need the Go 1.x runtime installed. To install this on OS X:
+```sh
+brew install golang
+```
+
+To run the tests:
+```sh
+make
+```
