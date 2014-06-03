@@ -103,3 +103,13 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 func TestFailoverNoFallbackHeader(t *testing.T) {
 	t.Error("Not implemented")
 }
+
+// Should not cache a response with a Set-Cookie a header.
+func TestNoCacheHeaderSetCookie(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should not cache a response with a Cache-Control: private header.
+func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
+	t.Error("Not implemented")
+}
