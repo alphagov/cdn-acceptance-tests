@@ -97,3 +97,9 @@ func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
 func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 	t.Error("Not implemented")
 }
+
+// Should not fallback to mirror if origin returns a 5xx response with a
+// No-Fallback header.
+func TestFailoverNoFallbackHeader(t *testing.T) {
+	t.Error("Not implemented")
+}
