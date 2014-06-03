@@ -57,6 +57,11 @@ func TestHeaderHostUnmodified(t *testing.T) {
 	t.Error("Not implemented")
 }
 
+// Should set a default TTL if the response doesn't set one.
+func TestDefaultTTL(t *testing.T) {
+	t.Error("Not implemented")
+}
+
 // Should serve stale object and not hit mirror(s) if origin is down and
 // object is beyond TTL but still in cache.
 func TestFailoverOriginDownServeStale(t *testing.T) {
