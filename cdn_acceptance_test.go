@@ -126,3 +126,28 @@ func TestNoCacheHeaderSetCookie(t *testing.T) {
 func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
 	t.Error("Not implemented")
 }
+
+// ---------------------------------------------------------
+// Test that useful common cache-related parameters are sent to the
+// client by this CDN provider.
+
+// Should set an Age header itself rather than passing the Age header from origin.
+func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should set an X-Cache header containing HIT/MISS from 'origin, itself'
+func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should set an X-Served-By header giving information on the node and location served from.
+func TestXServedByHeaderContainsANodeIdAndLocation(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should set an X-Cache-Hits header containing hit count for this object,
+// from the provider not origin
+func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
+	t.Error("Not implemented")
+}
