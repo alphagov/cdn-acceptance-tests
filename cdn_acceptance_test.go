@@ -7,12 +7,12 @@ import (
 	"net/http"
 )
 
-var edgeHostName = flag.String("edge", "www.gov.uk", "Hostname of edge")
+var edgeHost = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
 
 // Should redirect from HTTP to HTTPS without hitting origin.
 func TestProtocolRedirect(t *testing.T) {
-	sourceUrl := fmt.Sprintf("http://%s/", *edgeHostName)
-	destUrl := fmt.Sprintf("https://%s/", *edgeHostName)
+	sourceUrl := fmt.Sprintf("http://%s/", *edgeHost)
+	destUrl := fmt.Sprintf("https://%s/", *edgeHost)
 
 	client := &http.Transport{}
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
