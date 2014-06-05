@@ -18,5 +18,5 @@ brew install go
 
 To run the tests:
 ```sh
-make
+go test
 ```
