@@ -13,7 +13,7 @@ clients and servers from [net/http][net/http].
 
 You will need the Go 1.x runtime installed. To install this on OS X:
 ```sh
-brew install golang
+brew install go
 ```
 
 To run the tests:
