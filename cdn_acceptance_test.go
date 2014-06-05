@@ -19,7 +19,7 @@ func TestProtocolRedirect(t *testing.T) {
 	resp, err := client.RoundTrip(req)
 
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if resp.StatusCode != 301 {
 		t.Errorf("Status code expected 301, got %s", resp.StatusCode)
