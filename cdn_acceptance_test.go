@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"testing"
 	"net/http"
+	"testing"
 )
 
 var edgeHost = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
