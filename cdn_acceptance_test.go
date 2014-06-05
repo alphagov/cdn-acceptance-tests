@@ -22,7 +22,7 @@ func TestProtocolRedirect(t *testing.T) {
 		t.Fatal(err)
 	}
 	if resp.StatusCode != 301 {
-		t.Errorf("Status code expected 301, got %s", resp.StatusCode)
+		t.Errorf("Status code expected 301, got %d", resp.StatusCode)
 	}
 	if d := resp.Header.Get("Location"); d != destUrl {
 		t.Errorf("Location header expected %s, got %s", destUrl, d)
