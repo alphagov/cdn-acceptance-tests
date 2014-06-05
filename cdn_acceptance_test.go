@@ -31,6 +31,11 @@ func TestProtocolRedirect(t *testing.T) {
 	t.Error("Not implemented test to confirm that it doesn't hit origin")
 }
 
+// Should send request to origin by default
+func TestRequestsGoToOriginByDefault(t *testing.T) {
+	t.Error("Not implemented")
+}
+
 // Should return 403 for PURGE requests from IPs not in the whitelist.
 func TestRestrictPurgeRequests(t *testing.T) {
 	t.Error("Not implemented")
