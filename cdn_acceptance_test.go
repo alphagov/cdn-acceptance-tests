@@ -109,6 +109,14 @@ func TestFailoverNoFallbackHeader(t *testing.T) {
 	t.Error("Not implemented")
 }
 
+// Should serve a known static error page if cannot serve a page
+// from origin, stale or any mirror.
+// NB: ideally this should be a page that we control that has a mechanism
+//     to alert us that it has been served.
+func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
+	t.Error("Not implemented")
+}
+
 // Should not cache a response with a Set-Cookie a header.
 func TestNoCacheHeaderSetCookie(t *testing.T) {
 	t.Error("Not implemented")
