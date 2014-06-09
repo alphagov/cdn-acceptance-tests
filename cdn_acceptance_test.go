@@ -7,7 +7,10 @@ import (
 	"testing"
 )
 
-var edgeHost = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
+var (
+	edgeHost   = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
+	originPort = flag.Int("originPort", 8080, "Port to bind for origin requests")
+)
 
 var client = &http.Transport{}
 
