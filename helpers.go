@@ -53,7 +53,7 @@ func testHelpersCDNServeMuxHandlers(t *testing.T, mux *CDNServeMux) {
 		t.Fatal(err)
 	}
 	if resp.StatusCode != 200 {
-		t.Error("Initial probe request failed")
+		t.Error("First request to default handler failed")
 	}
 
 	for _, statusCode := range []int{301, 302, 403, 404} {
@@ -66,7 +66,7 @@ func testHelpersCDNServeMuxHandlers(t *testing.T, mux *CDNServeMux) {
 			t.Fatal(err)
 		}
 		if resp.StatusCode != statusCode {
-			t.Error("Request not served by correct handler")
+			t.Errorf("SwitchHandler didn't work. Got %d, expected %d", resp.StatusCode, statusCode)
 		}
 	}
 }
@@ -75,7 +75,7 @@ func testHelpersCDNServeMuxHandlers(t *testing.T, mux *CDNServeMux) {
 // determine the health of our origin.
 func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
 	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		t.Error("Request not served by correct handler")
+		t.Error("HEAD request incorrectly served by CDNServeMux.handler")
 	})
 
 	url := fmt.Sprintf("http://localhost:%d/", mux.Port)
@@ -87,6 +87,6 @@ func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
 	}
 
 	if resp.StatusCode != 200 || resp.Header.Get("PING") != "PONG" {
-		t.Error("Initial probe request failed")
+		t.Error("HEAD request for '/' served incorrectly")
 	}
 }
