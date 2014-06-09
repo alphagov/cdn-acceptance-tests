@@ -68,6 +68,35 @@ func TestProtocolRedirect(t *testing.T) {
 	}
 }
 
+func TestOriginIsEnabled(t *testing.T) {
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+	})
+
+	retries := 0
+	maxRetries := 10
+	var sourceUrl string
+	for retries <= maxRetries {
+		uuid := NewUUID()
+		sourceUrl = fmt.Sprintf("https://%s/confirm-cdn-ok-%s", *edgeHost, uuid)
+		req, _ := http.NewRequest("GET", sourceUrl, nil)
+		resp, err := client.RoundTrip(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		retries++
+		time.Sleep(5 * time.Second)
+		if resp.StatusCode == 200 {
+			break
+		}
+	}
+
+	if retries == maxRetries {
+		t.Errorf("CDN still not available after %n attempts", retries)
+	}
+
+}
+
 // Should send request to origin by default
 func TestRequestsGoToOriginByDefault(t *testing.T) {
 	t.Error("Not implemented")
