@@ -14,6 +14,11 @@ type CDNServeMux struct {
 }
 
 func (s *CDNServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "HEAD" && r.URL.Path == "/" {
+		w.Header().Set("PING", "PONG")
+		return
+	}
+
 	s.handler(w, r)
 }
 
@@ -33,7 +38,7 @@ func StartServer(port int) *CDNServeMux {
 
 // CDNServeMux helper should be ready to serve requests when test suite starts
 // and then serve custom handlers each with their own status code.
-func testHelpersCDNServeMux(t *testing.T, mux *CDNServeMux) {
+func testHelpersCDNServeMuxHandlers(t *testing.T, mux *CDNServeMux) {
 	url := fmt.Sprintf("http://localhost:%d/foo", mux.Port)
 	req, _ := http.NewRequest("GET", url, nil)
 
@@ -57,5 +62,25 @@ func testHelpersCDNServeMux(t *testing.T, mux *CDNServeMux) {
 		if resp.StatusCode != i {
 			t.Fatal("Request not served by correct handler")
 		}
+	}
+}
+
+// CDNServeMux should always respond to HEAD requests in order for the CDN to
+// determine the health of our origin.
+func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
+	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("Request not served by correct handler")
+	})
+
+	url := fmt.Sprintf("http://localhost:%d/", mux.Port)
+	req, _ := http.NewRequest("HEAD", url, nil)
+
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != 200 || resp.Header.Get("PING") != "PONG" {
+		t.Fatal("Initial probe request failed")
 	}
 }
