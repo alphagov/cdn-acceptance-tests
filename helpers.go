@@ -53,7 +53,7 @@ func testHelpersCDNServeMuxHandlers(t *testing.T, mux *CDNServeMux) {
 		t.Fatal(err)
 	}
 	if resp.StatusCode != 200 {
-		t.Fatal("Initial probe request failed")
+		t.Error("Initial probe request failed")
 	}
 
 	for _, statusCode := range []int{301, 302, 403, 404} {
@@ -66,7 +66,7 @@ func testHelpersCDNServeMuxHandlers(t *testing.T, mux *CDNServeMux) {
 			t.Fatal(err)
 		}
 		if resp.StatusCode != statusCode {
-			t.Fatal("Request not served by correct handler")
+			t.Error("Request not served by correct handler")
 		}
 	}
 }
@@ -87,6 +87,6 @@ func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
 	}
 
 	if resp.StatusCode != 200 || resp.Header.Get("PING") != "PONG" {
-		t.Fatal("Initial probe request failed")
+		t.Error("Initial probe request failed")
 	}
 }
