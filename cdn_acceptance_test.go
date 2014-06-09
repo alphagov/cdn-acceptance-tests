@@ -87,7 +87,7 @@ func TestRequestsGoToOriginByDefault(t *testing.T) {
 		t.Errorf("Status code expected 200, got %d", resp.StatusCode)
 	}
 	if d := resp.Header.Get("EnsureOriginServed"); d != uuid {
-		t.Errorf("EnsureOriginServed header has not come from Origin: expected %s, got %s", uuid, d)
+		t.Errorf("EnsureOriginServed header has not come from Origin: expected %q, got %q", uuid, d)
 	}
 
 }
