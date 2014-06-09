@@ -110,10 +110,11 @@ func testOriginIsEnabled(t *testing.T, mux *CDNServeMux, edgeHost *string) {
 		w.WriteHeader(200)
 	})
 
-	retries := 0
+	timeBetweenAttempts, _ := time.ParseDuration("5s")
 	maxRetries := 10
 	var sourceUrl string
-	for retries <= maxRetries {
+
+	for try := 0; try <= maxRetries; try++ {
 		uuid := NewUUID()
 		sourceUrl = fmt.Sprintf("https://%s/confirm-cdn-ok-%s", *edgeHost, uuid)
 		req, _ := http.NewRequest("GET", sourceUrl, nil)
@@ -121,15 +122,15 @@ func testOriginIsEnabled(t *testing.T, mux *CDNServeMux, edgeHost *string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		retries++
-		time.Sleep(5 * time.Second)
 		if resp.StatusCode == 200 {
+			time.Sleep(timeBetweenAttempts) // wait for other CDN nodes to catch up
 			break
 		}
-	}
-
-	if retries == maxRetries {
-		t.Errorf("CDN still not available after %n attempts", retries)
+		if try == maxRetries {
+			t.Errorf("CDN still not available after %n attempts", maxRetries)
+			break
+		}
+		time.Sleep(timeBetweenAttempts)
 	}
 
 }
