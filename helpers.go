@@ -118,7 +118,7 @@ func confirmOriginIsEnabled(mux *CDNServeMux, edgeHost string) error {
 
 	for try := 0; try <= maxRetries; try++ {
 		uuid := NewUUID()
-		sourceUrl = fmt.Sprintf("https://%s/confirm-cdn-ok-%s", edgeHost, uuid)
+		sourceUrl = fmt.Sprintf("https://%s/?cacheBuster=%s", edgeHost, uuid)
 		req, _ := http.NewRequest("GET", sourceUrl, nil)
 		resp, err := client.RoundTrip(req)
 		if err != nil {
