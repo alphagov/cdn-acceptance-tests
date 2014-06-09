@@ -12,7 +12,7 @@ const requestTimeout = time.Second * 5
 
 var (
 	edgeHost   = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
-	originPort = flag.Int("originPort", 8080, "Port to bind for origin requests")
+	originPort = flag.Int("originPort", 8080, "Origin port to listen on for requests")
 
 	client       *http.Transport
 	originServer *CDNServeMux
