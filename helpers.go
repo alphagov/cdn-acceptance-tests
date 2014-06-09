@@ -31,7 +31,13 @@ func StartServer(port int) *CDNServeMux {
 	handler := func(w http.ResponseWriter, r *http.Request) {}
 	mux := &CDNServeMux{port, handler}
 	addr := fmt.Sprintf(":%d", port)
-	go http.ListenAndServe(addr, mux)
+
+	go func() {
+		err := http.ListenAndServe(addr, mux)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	return mux
 }
