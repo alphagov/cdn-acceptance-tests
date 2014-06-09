@@ -28,6 +28,10 @@ func TestHelpers(t *testing.T) {
 
 // Should redirect from HTTP to HTTPS without hitting origin.
 func TestProtocolRedirect(t *testing.T) {
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("Request should not have made it to origin")
+	})
+
 	sourceUrl := fmt.Sprintf("http://%s/foo/bar", *edgeHost)
 	destUrl := fmt.Sprintf("https://%s/foo/bar", *edgeHost)
 
@@ -43,8 +47,6 @@ func TestProtocolRedirect(t *testing.T) {
 	if d := resp.Header.Get("Location"); d != destUrl {
 		t.Errorf("Location header expected %s, got %s", destUrl, d)
 	}
-
-	t.Error("Not implemented test to confirm that it doesn't hit origin")
 }
 
 // Should send request to origin by default
