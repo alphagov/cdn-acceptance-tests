@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -11,8 +13,9 @@ import (
 const requestTimeout = time.Second * 5
 
 var (
-	edgeHost   = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
-	originPort = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+	edgeHost    = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
+	originPort  = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+	insecureTLS = flag.Bool("insecureTLS", false, "Whether to check server certificates")
 
 	client       *http.Transport
 	originServer *CDNServeMux
@@ -20,11 +23,25 @@ var (
 
 // Setup clients and servers.
 func init() {
+
 	flag.Parse()
+
+	tlsOptions := &tls.Config{}
+	if *insecureTLS {
+		tlsOptions.InsecureSkipVerify = true
+	}
+
 	client = &http.Transport{
 		ResponseHeaderTimeout: requestTimeout,
+		TLSClientConfig:       tlsOptions,
 	}
 	originServer = StartServer(*originPort)
+
+	log.Println("Confirming that CDN has successfully probed Origin")
+	err := confirmOriginIsEnabled(originServer, *edgeHost)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func TestHelpers(t *testing.T) {
@@ -57,7 +74,28 @@ func TestProtocolRedirect(t *testing.T) {
 
 // Should send request to origin by default
 func TestRequestsGoToOriginByDefault(t *testing.T) {
-	t.Error("Not implemented")
+	uuid := NewUUID()
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
+			w.Header().Set("EnsureOriginServed", uuid)
+		}
+	})
+
+	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
+
+	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	resp, err := client.RoundTrip(req)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Errorf("Status code expected 200, got %d", resp.StatusCode)
+	}
+	if d := resp.Header.Get("EnsureOriginServed"); d != uuid {
+		t.Errorf("EnsureOriginServed header has not come from Origin: expected %q, got %q", uuid, d)
+	}
+
 }
 
 // Should return 403 for PURGE requests from IPs not in the whitelist.
