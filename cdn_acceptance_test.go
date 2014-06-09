@@ -251,7 +251,55 @@ func TestXServedByHeaderContainsANodeIdAndLocation(t *testing.T) {
 }
 
 // Should set an X-Cache-Hits header containing hit count for this object,
-// from the provider not origin
+// from the Edge AND the Origin, assuming Origin sets one.
+// This is in the format "{origin-hit-count}, {edge-hit-count}"
 func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
-	t.Error("Not implemented")
+
+	var (
+		xCacheHits         string
+		expectedXCacheHits string
+	)
+
+	uuid := NewUUID()
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
+			w.Header().Set("X-Cache-Hits", "53")
+		}
+	})
+
+	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
+
+	// Get first request, will come from origin. Edge Hit Count 0
+	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	xCacheHits = resp.Header.Get("X-Cache-Hits")
+	expectedXCacheHits = "53, 0"
+	if xCacheHits != expectedXCacheHits {
+		t.Errorf(
+			"X-Cache-Hits on initial hit is wrong: expected %q, got %q",
+			expectedXCacheHits,
+			xCacheHits,
+		)
+	}
+
+	// Get request again. Should come from Edge now, hit count 1
+	resp, err = client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	xCacheHits = resp.Header.Get("X-Cache-Hits")
+	expectedXCacheHits = "53, 1"
+	if xCacheHits != expectedXCacheHits {
+		t.Errorf(
+			"X-Cache-Hits on second hit is wrong: expected %q, got %q",
+			expectedXCacheHits,
+			xCacheHits,
+		)
+	}
+
 }
