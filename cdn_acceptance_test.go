@@ -99,7 +99,28 @@ func TestOriginIsEnabled(t *testing.T) {
 
 // Should send request to origin by default
 func TestRequestsGoToOriginByDefault(t *testing.T) {
-	t.Error("Not implemented")
+	uuid := NewUUID()
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/test-origin/%s", uuid) {
+			w.Header().Set("EnsureOriginServed", uuid)
+		}
+	})
+
+	sourceUrl := fmt.Sprintf("https://%s/test-origin/%s", *edgeHost, uuid)
+
+	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	resp, err := client.RoundTrip(req)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Errorf("Status code expected 200, got %d", resp.StatusCode)
+	}
+	if d := resp.Header.Get("EnsureOriginServed"); d != uuid {
+		t.Errorf("EnsureOriginServed header has not come from Origin: expected %s, got %s", uuid, d)
+	}
+
 }
 
 // Should return 403 for PURGE requests from IPs not in the whitelist.
