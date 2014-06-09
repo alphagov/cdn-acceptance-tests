@@ -56,16 +56,16 @@ func testHelpersCDNServeMuxHandlers(t *testing.T, mux *CDNServeMux) {
 		t.Fatal("Initial probe request failed")
 	}
 
-	for i := 300; i < 600; i += 100 {
+	for _, statusCode := range []int{301, 302, 403, 404} {
 		mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(i)
+			w.WriteHeader(statusCode)
 		})
 
 		resp, err := client.RoundTrip(req)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if resp.StatusCode != i {
+		if resp.StatusCode != statusCode {
 			t.Fatal("Request not served by correct handler")
 		}
 	}
