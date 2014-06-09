@@ -20,6 +20,7 @@ var (
 
 // Setup clients and servers.
 func init() {
+	flag.Parse()
 	client = &http.Transport{
 		ResponseHeaderTimeout: requestTimeout,
 	}
