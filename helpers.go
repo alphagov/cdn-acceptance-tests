@@ -105,7 +105,7 @@ func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
 	}
 }
 
-func testOriginIsEnabled(t *testing.T, mux *CDNServeMux, edgeHost string) {
+func confirmOriginIsEnabled(mux *CDNServeMux, edgeHost string) error {
 	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	})
@@ -120,17 +120,17 @@ func testOriginIsEnabled(t *testing.T, mux *CDNServeMux, edgeHost string) {
 		req, _ := http.NewRequest("GET", sourceUrl, nil)
 		resp, err := client.RoundTrip(req)
 		if err != nil {
-			t.Fatal(err)
+			return err
 		}
 		if resp.StatusCode == 200 {
 			time.Sleep(timeBetweenAttempts) // wait for other CDN nodes to catch up
 			break
 		}
 		if try == maxRetries {
-			t.Errorf("CDN still not available after %n attempts", maxRetries)
-			break
+			return fmt.Errorf("CDN still not available after %n attempts", maxRetries)
 		}
 		time.Sleep(timeBetweenAttempts)
 	}
+	return nil // all good!
 
 }

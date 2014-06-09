@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -35,12 +36,17 @@ func init() {
 		TLSClientConfig:       tlsOptions,
 	}
 	originServer = StartServer(*originPort)
+
+	log.Println("Confirming that CDN has successfully probed Origin")
+	err := confirmOriginIsEnabled(originServer, *edgeHost)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func TestHelpers(t *testing.T) {
 	testHelpersCDNServeMuxHandlers(t, originServer)
 	testHelpersCDNServeMuxProbes(t, originServer)
-	testOriginIsEnabled(t, originServer, *edgeHost)
 }
 
 // Should redirect from HTTP to HTTPS without hitting origin.
