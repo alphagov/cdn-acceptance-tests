@@ -70,12 +70,12 @@ func TestProtocolRedirect(t *testing.T) {
 func TestRequestsGoToOriginByDefault(t *testing.T) {
 	uuid := NewUUID()
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/test-origin/%s", uuid) {
+		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
 			w.Header().Set("EnsureOriginServed", uuid)
 		}
 	})
 
-	sourceUrl := fmt.Sprintf("https://%s/test-origin/%s", *edgeHost, uuid)
+	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
 
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
 	resp, err := client.RoundTrip(req)
