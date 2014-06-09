@@ -10,9 +10,20 @@ import (
 var (
 	edgeHost   = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
 	originPort = flag.Int("originPort", 8080, "Port to bind for origin requests")
+
+	client       *http.Transport
+	originServer *CDNServeMux
 )
 
-var client = &http.Transport{}
+// Setup clients and servers.
+func init() {
+	client = &http.Transport{}
+	originServer = StartServer(*originPort)
+}
+
+func TestHelpers(t *testing.T) {
+	testHelpersCDNServeMux(t, originServer)
+}
 
 // Should redirect from HTTP to HTTPS without hitting origin.
 func TestProtocolRedirect(t *testing.T) {
