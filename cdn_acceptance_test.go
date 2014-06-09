@@ -25,12 +25,9 @@ func init() {
 
 	flag.Parse()
 
-	var tlsOptions *tls.Config
-
-	if *insecureTLS == true {
-		tlsOptions = &tls.Config{InsecureSkipVerify: true}
-	} else {
-		tlsOptions = &tls.Config{}
+	tlsOptions := &tls.Config{}
+	if *insecureTLS {
+		tlsOptions.InsecureSkipVerify = true
 	}
 
 	client = &http.Transport{
