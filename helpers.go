@@ -105,7 +105,7 @@ func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
 	}
 }
 
-func testOriginIsEnabled(t *testing.T, mux *CDNServeMux, edgeHost *string) {
+func testOriginIsEnabled(t *testing.T, mux *CDNServeMux, edgeHost string) {
 	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	})
@@ -116,7 +116,7 @@ func testOriginIsEnabled(t *testing.T, mux *CDNServeMux, edgeHost *string) {
 
 	for try := 0; try <= maxRetries; try++ {
 		uuid := NewUUID()
-		sourceUrl = fmt.Sprintf("https://%s/confirm-cdn-ok-%s", *edgeHost, uuid)
+		sourceUrl = fmt.Sprintf("https://%s/confirm-cdn-ok-%s", edgeHost, uuid)
 		req, _ := http.NewRequest("GET", sourceUrl, nil)
 		resp, err := client.RoundTrip(req)
 		if err != nil {

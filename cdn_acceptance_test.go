@@ -40,7 +40,7 @@ func init() {
 func TestHelpers(t *testing.T) {
 	testHelpersCDNServeMuxHandlers(t, originServer)
 	testHelpersCDNServeMuxProbes(t, originServer)
-	testOriginIsEnabled(t, originServer, edgeHost)
+	testOriginIsEnabled(t, originServer, *edgeHost)
 }
 
 // Should redirect from HTTP to HTTPS without hitting origin.
