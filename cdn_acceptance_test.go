@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"net/http"
@@ -11,8 +12,9 @@ import (
 const requestTimeout = time.Second * 5
 
 var (
-	edgeHost   = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
-	originPort = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+	edgeHost    = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
+	originPort  = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+	insecureTLS = flag.Bool("insecureTLS", false, "Whether to check server certificates")
 
 	client       *http.Transport
 	originServer *CDNServeMux
@@ -20,9 +22,20 @@ var (
 
 // Setup clients and servers.
 func init() {
+
 	flag.Parse()
+
+	var tlsOptions *tls.Config
+
+	if *insecureTLS == true {
+		tlsOptions = &tls.Config{InsecureSkipVerify: true}
+	} else {
+		tlsOptions = &tls.Config{}
+	}
+
 	client = &http.Transport{
 		ResponseHeaderTimeout: requestTimeout,
+		TLSClientConfig:       tlsOptions,
 	}
 	originServer = StartServer(*originPort)
 }
