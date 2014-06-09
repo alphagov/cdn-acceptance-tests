@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
 	"net/http"
 	"testing"
@@ -40,6 +41,18 @@ func StartServer(port int) *CDNServeMux {
 	}()
 
 	return mux
+}
+
+// Return a v4 (random) UUID string.
+// This might not be strictly RFC4122 compliant, but it will do. Credit:
+// https://groups.google.com/d/msg/golang-nuts/Rn13T6BZpgE/dBaYVJ4hB5gJ
+func NewUUID() string {
+	bs := make([]byte, 16)
+	rand.Read(bs)
+	bs[6] = (bs[6] & 0x0f) | 0x40
+	bs[8] = (bs[8] & 0x3f) | 0x80
+
+	return fmt.Sprintf("%x-%x-%x-%x-%x", bs[0:4], bs[4:6], bs[6:8], bs[8:10], bs[10:])
 }
 
 // CDNServeMux helper should be ready to serve requests when test suite starts
