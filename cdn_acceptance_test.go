@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -247,7 +248,33 @@ func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
 
 // Should set an X-Served-By header giving information on the node and location served from.
 func TestXServedByHeaderContainsANodeIdAndLocation(t *testing.T) {
-	t.Error("Not implemented")
+
+	uuid := NewUUID()
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
+			w.WriteHeader(200)
+		}
+	})
+
+	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
+
+	// Get first request, will come from origin. Edge Hit Count 0
+	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actualHeader := resp.Header.Get("X-Served-By")
+	if actualHeader == "" {
+		t.Error("X-Served-By header has not been set by Edge")
+	}
+
+	re := regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
+	if re.FindString(actualHeader) != actualHeader {
+		t.Errorf("X-Served-By is not as expected: got %q", actualHeader)
+	}
+
 }
 
 // Should set an X-Cache-Hits header containing hit count for this object,
