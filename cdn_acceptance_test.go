@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 )
+
+const requestTimeout = time.Second * 5
 
 var (
 	edgeHost   = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
@@ -17,7 +20,9 @@ var (
 
 // Setup clients and servers.
 func init() {
-	client = &http.Transport{}
+	client = &http.Transport{
+		ResponseHeaderTimeout: requestTimeout,
+	}
 	originServer = StartServer(*originPort)
 }
 
