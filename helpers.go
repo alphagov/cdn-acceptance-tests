@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 )
 
 // HTTP ServeMux with an updateable handler so that tests can pass their own
@@ -102,4 +103,33 @@ func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
 	if resp.StatusCode != 200 || resp.Header.Get("PING") != "PONG" {
 		t.Error("HEAD request for '/' served incorrectly")
 	}
+}
+
+func testOriginIsEnabled(t *testing.T, mux *CDNServeMux, edgeHost *string) {
+	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+	})
+
+	retries := 0
+	maxRetries := 10
+	var sourceUrl string
+	for retries <= maxRetries {
+		uuid := NewUUID()
+		sourceUrl = fmt.Sprintf("https://%s/confirm-cdn-ok-%s", *edgeHost, uuid)
+		req, _ := http.NewRequest("GET", sourceUrl, nil)
+		resp, err := client.RoundTrip(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		retries++
+		time.Sleep(5 * time.Second)
+		if resp.StatusCode == 200 {
+			break
+		}
+	}
+
+	if retries == maxRetries {
+		t.Errorf("CDN still not available after %n attempts", retries)
+	}
+
 }
