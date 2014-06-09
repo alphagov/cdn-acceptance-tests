@@ -3,11 +3,28 @@
 Acceptance tests for our Content Delivery Network(s).
 
 These are written using Go's [testing][testing] package because it provides
-a framework for running basic assertions and allows us to construct HTTP
-clients and servers from [net/http][net/http].
+a framework for running basic assertions and a [rich HTTP client/server
+library][net/http].
 
 [testing]: http://golang.org/pkg/testing/
 [net/http]: http://golang.org/pkg/net/http/
+
+## Methodology
+
+The single Go process acts as both the client and the origin server so that
+it can inspect the input and output of the CDN.
+```
+              +---------+
+        +---> |   CDN   |-----+
+        |     +---------+     |
+ client |                     | server
+        |     +---------+     |
+        +-----| go test | <---+
+              +---------+
+```
+
+It will not configure the CDN service for you; you'll need to do so,
+pointing it at the machine that will be running the tests.
 
 ## Running
 
