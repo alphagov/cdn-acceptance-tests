@@ -5,16 +5,41 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 )
 
-var edgeHost = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
+const requestTimeout = time.Second * 5
+
+var (
+	edgeHost   = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
+	originPort = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+
+	client       *http.Transport
+	originServer *CDNServeMux
+)
+
+// Setup clients and servers.
+func init() {
+	client = &http.Transport{
+		ResponseHeaderTimeout: requestTimeout,
+	}
+	originServer = StartServer(*originPort)
+}
+
+func TestHelpers(t *testing.T) {
+	testHelpersCDNServeMuxHandlers(t, originServer)
+	testHelpersCDNServeMuxProbes(t, originServer)
+}
 
 // Should redirect from HTTP to HTTPS without hitting origin.
 func TestProtocolRedirect(t *testing.T) {
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("Request should not have made it to origin")
+	})
+
 	sourceUrl := fmt.Sprintf("http://%s/foo/bar", *edgeHost)
 	destUrl := fmt.Sprintf("https://%s/foo/bar", *edgeHost)
 
-	client := &http.Transport{}
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
 	resp, err := client.RoundTrip(req)
 
@@ -27,8 +52,6 @@ func TestProtocolRedirect(t *testing.T) {
 	if d := resp.Header.Get("Location"); d != destUrl {
 		t.Errorf("Location header expected %s, got %s", destUrl, d)
 	}
-
-	t.Error("Not implemented test to confirm that it doesn't hit origin")
 }
 
 // Should send request to origin by default
