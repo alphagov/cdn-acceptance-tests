@@ -16,7 +16,7 @@ const requestTimeout = time.Second * 5
 var (
 	edgeHost    = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
 	originPort  = flag.Int("originPort", 8080, "Origin port to listen on for requests")
-	insecureTLS = flag.Bool("insecureTLS", false, "Whether to check server certificates")
+	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 
 	client       *http.Transport
 	originServer *CDNServeMux
@@ -28,7 +28,7 @@ func init() {
 	flag.Parse()
 
 	tlsOptions := &tls.Config{}
-	if *insecureTLS {
+	if *skipVerifyTLS {
 		tlsOptions.InsecureSkipVerify = true
 	}
 
