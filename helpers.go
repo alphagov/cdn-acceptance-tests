@@ -111,7 +111,7 @@ func confirmOriginIsEnabled(mux *CDNServeMux, edgeHost string) error {
 	})
 
 	timeBetweenAttempts, _ := time.ParseDuration("2s")
-	waitForCdnProbeToPropogate, _ := time.ParseDuration("5s")
+	waitForCdnProbeToPropagate, _ := time.ParseDuration("5s")
 
 	maxRetries := 20
 	var sourceUrl string
@@ -126,7 +126,7 @@ func confirmOriginIsEnabled(mux *CDNServeMux, edgeHost string) error {
 		}
 		if resp.StatusCode == 200 {
 			if try != 0 {
-				time.Sleep(waitForCdnProbeToPropogate)
+				time.Sleep(waitForCdnProbeToPropagate)
 			}
 			return nil // all is well!
 		}
