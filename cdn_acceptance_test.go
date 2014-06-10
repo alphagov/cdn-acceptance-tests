@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -174,7 +175,31 @@ func TestHeaderAppendXFF(t *testing.T) {
 // Should create a True-Client-IP header containing the client's IP
 // address, discarding the value provided in the original request.
 func TestHeaderUnspoofableClientIP(t *testing.T) {
-	t.Error("Not implemented")
+	const headerName = "True-Client-IP"
+	const sentHeaderVal = "203.0.113.99"
+	var sentHeaderIP = net.ParseIP(sentHeaderVal)
+	var receivedHeaderVal string
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaderVal = r.Header.Get(headerName)
+	})
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set(headerName, sentHeaderVal)
+
+	_, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	receivedHeaderIP := net.ParseIP(receivedHeaderVal)
+	if receivedHeaderIP == nil {
+		t.Fatalf("Origin received %q header with non-IP value %q", headerName, receivedHeaderIP)
+	}
+	if receivedHeaderIP.Equal(sentHeaderIP) {
+		t.Errorf("Origin received %q header with unmodified value %q", headerName, receivedHeaderIP)
+	}
 }
 
 // Should not modify Host header from original request.
