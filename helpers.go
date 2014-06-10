@@ -110,27 +110,28 @@ func confirmOriginIsEnabled(mux *CDNServeMux, edgeHost string) error {
 		w.WriteHeader(200)
 	})
 
-	timeBetweenAttempts, _ := time.ParseDuration("5s")
-	maxRetries := 10
+	timeBetweenAttempts, _ := time.ParseDuration("2s")
+	waitForCdnProbeToPropogate, _ := time.ParseDuration("5s")
+
+	maxRetries := 20
 	var sourceUrl string
 
 	for try := 0; try <= maxRetries; try++ {
 		uuid := NewUUID()
-		sourceUrl = fmt.Sprintf("https://%s/confirm-cdn-ok-%s", edgeHost, uuid)
+		sourceUrl = fmt.Sprintf("https://%s/?cacheBuster=%s", edgeHost, uuid)
 		req, _ := http.NewRequest("GET", sourceUrl, nil)
 		resp, err := client.RoundTrip(req)
 		if err != nil {
 			return err
 		}
 		if resp.StatusCode == 200 {
-			time.Sleep(timeBetweenAttempts) // wait for other CDN nodes to catch up
-			break
-		}
-		if try == maxRetries {
-			return fmt.Errorf("CDN still not available after %n attempts", maxRetries)
+			if try != 0 {
+				time.Sleep(waitForCdnProbeToPropogate)
+			}
+			return nil // all is well!
 		}
 		time.Sleep(timeBetweenAttempts)
 	}
-	return nil // all good!
+	return fmt.Errorf("CDN still not available after %n attempts", maxRetries)
 
 }
