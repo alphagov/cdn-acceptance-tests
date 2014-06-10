@@ -23,6 +23,9 @@ it can inspect the input and output of the CDN.
               +---------+
 ```
 
+When testing a real CDN, the tests must be run on a server that the CDN can
+connect to.
+
 It will not configure the CDN service for you; you'll need to do so,
 pointing it at the machine that will be running the tests.
 
