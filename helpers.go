@@ -105,7 +105,10 @@ func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
 	}
 }
 
-func confirmOriginIsEnabled(mux *CDNServeMux, edgeHost string) error {
+// Confirm that the edge (CDN) is working correctly. This may take some time
+// because our CDNServeMux needs to receive and respond to enough probe
+// health checks to be considered up.
+func confirmEdgeIsHealthy(mux *CDNServeMux, edgeHost string) error {
 	const maxRetries = 20
 	const timeBetweenAttempts = time.Duration(2 * time.Second)
 	const waitForCdnProbeToPropagate = time.Duration(5 * time.Second)

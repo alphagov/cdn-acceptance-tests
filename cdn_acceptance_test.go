@@ -38,8 +38,8 @@ func init() {
 	}
 	originServer = StartServer(*originPort)
 
-	log.Println("Confirming that CDN has successfully probed Origin")
-	err := confirmOriginIsEnabled(originServer, *edgeHost)
+	log.Println("Confirming that CDN is healthy")
+	err := confirmEdgeIsHealthy(originServer, *edgeHost)
 	if err != nil {
 		log.Fatal(err)
 	}
