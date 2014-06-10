@@ -105,15 +105,18 @@ func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
 	}
 }
 
-func confirmOriginIsEnabled(mux *CDNServeMux, edgeHost string) error {
+// Confirm that the edge (CDN) is working correctly. This may take some time
+// because our CDNServeMux needs to receive and respond to enough probe
+// health checks to be considered up.
+func confirmEdgeIsHealthy(mux *CDNServeMux, edgeHost string) error {
+	const maxRetries = 20
+	const timeBetweenAttempts = time.Duration(2 * time.Second)
+	const waitForCdnProbeToPropagate = time.Duration(5 * time.Second)
+
 	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	})
 
-	timeBetweenAttempts, _ := time.ParseDuration("2s")
-	waitForCdnProbeToPropogate, _ := time.ParseDuration("5s")
-
-	maxRetries := 20
 	var sourceUrl string
 
 	for try := 0; try <= maxRetries; try++ {
@@ -126,7 +129,7 @@ func confirmOriginIsEnabled(mux *CDNServeMux, edgeHost string) error {
 		}
 		if resp.StatusCode == 200 {
 			if try != 0 {
-				time.Sleep(waitForCdnProbeToPropogate)
+				time.Sleep(waitForCdnProbeToPropagate)
 			}
 			return nil // all is well!
 		}
