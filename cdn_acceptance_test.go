@@ -14,8 +14,8 @@ import (
 const requestTimeout = time.Second * 5
 
 var (
-	edgeHost    = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
-	originPort  = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+	edgeHost      = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
+	originPort    = flag.Int("originPort", 8080, "Origin port to listen on for requests")
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 
 	client       *http.Transport
