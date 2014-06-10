@@ -45,7 +45,7 @@ go test
 
 You can use the included Vagrant VM, which runs Nginx and Varnish, to mock
 CDN behaviour. This can be useful when developing new tests or
-functionality, while either offline or in parallel to someone else.
+functionality when working offline or in parallel to someone else.
 
 It is unlikely that *all* tests will run successfully. If you want a
 particular test to pass you may need to modify the Nginx or Varnish configs
