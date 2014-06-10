@@ -140,9 +140,25 @@ func TestFirstResponseCached(t *testing.T) {
 	}
 }
 
-// Should return 403 for PURGE requests from IPs not in the whitelist.
+// Should return 403 for PURGE requests from IPs not in the whitelist. We
+// assume that this is not running from a whitelisted address.
 func TestRestrictPurgeRequests(t *testing.T) {
-	t.Error("Not implemented")
+	const expectedStatusCode = 403
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("Request should not have made it to origin")
+	})
+
+	url := fmt.Sprintf("https://%s/", *edgeHost)
+	req, _ := http.NewRequest("PURGE", url, nil)
+
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != expectedStatusCode {
+		t.Errorf("Incorrect status code. Expected %d, got %d", expectedStatusCode, resp.StatusCode)
+	}
 }
 
 // Should create an X-Forwarded-For header containing the client's IP.
