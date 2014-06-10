@@ -106,14 +106,14 @@ func testHelpersCDNServeMuxProbes(t *testing.T, mux *CDNServeMux) {
 }
 
 func confirmOriginIsEnabled(mux *CDNServeMux, edgeHost string) error {
+	const maxRetries = 20
+	const timeBetweenAttempts = time.Duration(2 * time.Second)
+	const waitForCdnProbeToPropagate = time.Duration(5 * time.Second)
+
 	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	})
 
-	timeBetweenAttempts, _ := time.ParseDuration("2s")
-	waitForCdnProbeToPropagate, _ := time.ParseDuration("5s")
-
-	maxRetries := 20
 	var sourceUrl string
 
 	for try := 0; try <= maxRetries; try++ {
