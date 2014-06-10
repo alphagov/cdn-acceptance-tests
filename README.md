@@ -51,7 +51,7 @@ in [`mock_cdn_config/`](/mock_cdn_config) accordingly.
 To bring up the VM and point the tests at it:
 ```
 vagrant up && vagrant provision
-go test -edgeHost 172.16.20.10 -insecureTLS
+go test -edgeHost 172.16.20.10 -skipVerifyTLS
 ```
 
 Please note that this is not a complete substitute for the real thing. You
