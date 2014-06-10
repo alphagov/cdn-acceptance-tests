@@ -2,6 +2,8 @@ server {
   listen 80 default_server;
   location / {
     proxy_pass http://localhost:6081;
+    proxy_redirect default;
+    proxy_redirect https://localhost:6081 https://<%= @ipaddress_eth1 -%>;
   }
 }
 
@@ -11,5 +13,6 @@ server {
   ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;
   location / {
     proxy_pass http://localhost:6081;
+    proxy_set_header Fastly-SSL "true";
   }
 }
