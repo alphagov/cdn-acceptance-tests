@@ -1,0 +1,35 @@
+backend default {
+  .host = "<%= @ipaddress_vmhost -%>";
+  .port = "8080";
+}
+
+# Please add the minimal amount of code required to implement/mimic the
+# functionality you need to test. This shouldn't match our real config
+# line-by-line, otherwise we'll have trouble maintaining parity.
+
+acl purge {
+  "192.168.0.1";
+}
+
+sub vcl_recv {
+  if (req.request == "PURGE") {
+    if (client.ip ~ purge) {
+      return (lookup);
+    }
+    error 403 "Forbidden";
+  }
+
+  if (!req.http.Fastly-SSL) {
+     error 801 "Force SSL";
+  }
+}
+
+sub vcl_error {
+  if (obj.status == 801) {
+     set obj.status = 301;
+     set obj.response = "Moved Permanently";
+     set obj.http.Location = "https://" + req.http.host + req.url;
+     synthetic {""};
+     return (deliver);
+  }
+}
