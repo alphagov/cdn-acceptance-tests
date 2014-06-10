@@ -7,7 +7,18 @@ backend default {
 # functionality you need to test. This shouldn't match our real config
 # line-by-line, otherwise we'll have trouble maintaining parity.
 
+acl purge {
+  "192.168.0.1";
+}
+
 sub vcl_recv {
+  if (req.request == "PURGE") {
+    if (client.ip ~ purge) {
+      return (lookup);
+    }
+    error 403 "Forbidden";
+  }
+
   if (!req.http.Fastly-SSL) {
      error 801 "Force SSL";
   }
