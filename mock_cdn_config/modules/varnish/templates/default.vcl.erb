@@ -22,6 +22,8 @@ sub vcl_recv {
   if (!req.http.Fastly-SSL) {
      error 801 "Force SSL";
   }
+
+  set req.http.True-Client-IP = req.http.Fastly-Client-IP;
 }
 
 sub vcl_error {

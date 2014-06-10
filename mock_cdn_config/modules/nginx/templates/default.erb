@@ -14,5 +14,6 @@ server {
   location / {
     proxy_pass http://localhost:6081;
     proxy_set_header Fastly-SSL "true";
+    proxy_set_header Fastly-Client-IP $remote_addr;
   }
 }
