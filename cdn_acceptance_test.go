@@ -246,8 +246,10 @@ func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
 	t.Error("Not implemented")
 }
 
-// Should set an X-Served-By header giving information on the node and location served from.
-func TestXServedByHeaderContainsANodeIdAndLocation(t *testing.T) {
+// Should set an X-Served-By header giving information on the (Fastly) node and location served from.
+func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
+
+	expectedFastlyXServedByRegexp := regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
 
 	uuid := NewUUID()
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
@@ -270,8 +272,7 @@ func TestXServedByHeaderContainsANodeIdAndLocation(t *testing.T) {
 		t.Error("X-Served-By header has not been set by Edge")
 	}
 
-	re := regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
-	if re.FindString(actualHeader) != actualHeader {
+	if expectedFastlyXServedByRegexp.FindString(actualHeader) != actualHeader {
 		t.Errorf("X-Served-By is not as expected: got %q", actualHeader)
 	}
 
