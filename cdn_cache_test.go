@@ -9,7 +9,7 @@ import (
 
 // Should cache first response and return it on second request without
 // hitting origin again.
-func TestFirstResponseCached(t *testing.T) {
+func TestCacheFirstResponse(t *testing.T) {
 	const bodyExpected = "first request"
 	const requestsExpectedCount = 1
 	requestsReceivedCount := 0
@@ -49,6 +49,6 @@ func TestFirstResponseCached(t *testing.T) {
 }
 
 // Should set a default TTL if the response doesn't set one.
-func TestDefaultTTL(t *testing.T) {
+func TestCacheDefaultTTL(t *testing.T) {
 	t.Error("Not implemented")
 }
