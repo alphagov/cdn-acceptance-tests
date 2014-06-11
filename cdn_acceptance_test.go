@@ -237,9 +237,30 @@ func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
 	t.Error("Not implemented")
 }
 
-// Should not cache a response with a Set-Cookie a header.
+// Should not cache a response with a Set-Cookie header.
 func TestNoCacheHeaderSetCookie(t *testing.T) {
-	t.Error("Not implemented")
+	const requestsExpectedCount = 3
+	requestsReceivedCount := 0
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Set-Cookie", "sekret=mekmitasdigoat")
+		requestsReceivedCount++
+	})
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+
+	for i := 0; i < requestsExpectedCount; i++ {
+		_, err := client.RoundTrip(req)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if requestsReceivedCount != requestsExpectedCount {
+		t.Errorf("originServer received the wrong number of requests. Expected %d, got %d", requestsExpectedCount, requestsReceivedCount)
+	}
 }
 
 // Should not cache a response with a Cache-Control: private header.
