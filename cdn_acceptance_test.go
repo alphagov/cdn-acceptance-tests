@@ -255,6 +255,8 @@ func TestXServedByHeaderContainsANodeIdAndLocation(t *testing.T) {
 // This is in the format "{origin-hit-count}, {edge-hit-count}"
 func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
 
+	const originXCacheHits = "53"
+
 	var (
 		xCacheHits         string
 		expectedXCacheHits string
@@ -263,7 +265,7 @@ func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
 	uuid := NewUUID()
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
-			w.Header().Set("X-Cache-Hits", "53")
+			w.Header().Set("X-Cache-Hits", originXCacheHits)
 		}
 	})
 
@@ -277,7 +279,7 @@ func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
 	}
 
 	xCacheHits = resp.Header.Get("X-Cache-Hits")
-	expectedXCacheHits = "53, 0"
+	expectedXCacheHits = fmt.Sprintf("%s, 0", originXCacheHits)
 	if xCacheHits != expectedXCacheHits {
 		t.Errorf(
 			"X-Cache-Hits on initial hit is wrong: expected %q, got %q",
@@ -293,7 +295,7 @@ func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
 	}
 
 	xCacheHits = resp.Header.Get("X-Cache-Hits")
-	expectedXCacheHits = "53, 1"
+	expectedXCacheHits = fmt.Sprintf("%s, 1", originXCacheHits)
 	if xCacheHits != expectedXCacheHits {
 		t.Errorf(
 			"X-Cache-Hits on second hit is wrong: expected %q, got %q",
