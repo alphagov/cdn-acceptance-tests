@@ -239,27 +239,38 @@ func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
 
 // Should not cache a response with a Set-Cookie header.
 func TestNoCacheHeaderSetCookie(t *testing.T) {
-	const requestsExpectedCount = 3
 	requestsReceivedCount := 0
+	responseBodies := []string{
+		"first response",
+		"second response",
+		"third response",
+	}
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Set-Cookie", "sekret=mekmitasdigoat")
+		w.Write([]byte(responseBodies[requestsReceivedCount]))
 		requestsReceivedCount++
 	})
 
 	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
 	req, _ := http.NewRequest("GET", url, nil)
 
-	for i := 0; i < requestsExpectedCount; i++ {
-		_, err := client.RoundTrip(req)
+	for _, expectedBody := range responseBodies {
+		resp, err := client.RoundTrip(req)
 
 		if err != nil {
 			t.Fatal(err)
 		}
-	}
 
-	if requestsReceivedCount != requestsExpectedCount {
-		t.Errorf("originServer received the wrong number of requests. Expected %d, got %d", requestsExpectedCount, requestsReceivedCount)
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if receivedBody := string(body); receivedBody != expectedBody {
+			t.Errorf("Incorrect response body. Expected %q, got %q", expectedBody, receivedBody)
+		}
 	}
 }
 
