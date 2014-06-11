@@ -9,6 +9,8 @@ import (
 // CDNServeMux helper should be ready to serve requests when test suite starts
 // and then serve custom handlers each with their own status code.
 func TestHelpersCDNServeMuxHandlers(t *testing.T) {
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
+
 	url := fmt.Sprintf("http://localhost:%d/foo", originServer.Port)
 	req, _ := http.NewRequest("GET", url, nil)
 
