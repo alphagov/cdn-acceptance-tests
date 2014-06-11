@@ -5,7 +5,9 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"strconv"
 	"testing"
+	"time"
 )
 
 // Should redirect from HTTP to HTTPS without hitting origin.
@@ -111,7 +113,51 @@ func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
 
 // Should set an Age header itself rather than passing the Age header from origin.
 func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
-	t.Error("Not implemented")
+	const originAgeInSeconds = 100000
+	const secondsToWaitBetweenRequests = 1
+	requestReceivedCount := 0
+	uuid := NewUUID()
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if requestReceivedCount == 0 {
+			//w.Header().Set("Age", fmt.Sprintf("%d", originAgeInSeconds))
+			w.Write([]byte("cacheable request"))
+		} else {
+			t.Error("Unexpected subsequent request received at Origin")
+		}
+	})
+
+	url := fmt.Sprintf("https://%s/?cache-lock=%s", *edgeHost, uuid)
+	req, _ := http.NewRequest("GET", url, nil)
+
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(resp)
+
+	// wait a little bit. Edge should update the Age header, we know Origin will not
+	time.Sleep(2 * time.Second)
+
+	resp, err = client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(resp)
+
+	edgeAgeHeader := resp.Header.Get("Age")
+	edgeAgeInSeconds, convErr := strconv.Atoi(edgeAgeHeader)
+	if convErr != nil {
+		t.Fatal(convErr)
+	}
+	if edgeAgeInSeconds == originAgeInSeconds {
+		t.Error("Age header from Edge is same as Origin. It should be greater.")
+	}
+	if edgeAgeInSeconds == originAgeInSeconds+1 {
+		return
+	}
+	t.Errorf("Age header from Edge is not as expected. Got %q", edgeAgeHeader)
+
 }
 
 // Should set an X-Cache header containing HIT/MISS from 'origin, itself'
