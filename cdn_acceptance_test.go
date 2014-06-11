@@ -195,7 +195,7 @@ func TestHeaderUnspoofableClientIP(t *testing.T) {
 
 	receivedHeaderIP := net.ParseIP(receivedHeaderVal)
 	if receivedHeaderIP == nil {
-		t.Fatalf("Origin received %q header with non-IP value %q", headerName, receivedHeaderIP)
+		t.Fatalf("Origin received %q header with non-IP value %q", headerName, receivedHeaderVal)
 	}
 	if receivedHeaderIP.Equal(sentHeaderIP) {
 		t.Errorf("Origin received %q header with unmodified value %q", headerName, receivedHeaderIP)
