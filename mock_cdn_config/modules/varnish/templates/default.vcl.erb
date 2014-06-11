@@ -26,6 +26,16 @@ sub vcl_recv {
   set req.http.True-Client-IP = req.http.Fastly-Client-IP;
 }
 
+sub vcl_deliver {
+
+  if(!resp.http.X-Cache-Hits) {
+    set resp.http.X-Cache-Hits = obj.hits;
+  } else {
+    set resp.http.X-Cache-Hits = resp.http.X-Cache-Hits + ", " + obj.hits;
+  }
+
+}
+
 sub vcl_error {
   if (obj.status == 801) {
      set obj.status = 301;
