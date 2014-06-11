@@ -8,11 +8,6 @@ import (
 	"testing"
 )
 
-func TestHelpers(t *testing.T) {
-	testHelpersCDNServeMuxHandlers(t, originServer)
-	testHelpersCDNServeMuxProbes(t, originServer)
-}
-
 // Should redirect from HTTP to HTTPS without hitting origin.
 func TestProtocolRedirect(t *testing.T) {
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
