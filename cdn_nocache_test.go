@@ -34,7 +34,38 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 
 // Should not cache the response to a POST request.
 func TestNoCachePOST(t *testing.T) {
-	t.Error("Not implemented")
+	requestsReceivedCount := 0
+	responseBodies := []string{
+		"first response",
+		"second response",
+		"third response",
+	}
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(responseBodies[requestsReceivedCount]))
+		requestsReceivedCount++
+	})
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("POST", url, nil)
+
+	for _, expectedBody := range responseBodies {
+		resp, err := client.RoundTrip(req)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if receivedBody := string(body); receivedBody != expectedBody {
+			t.Errorf("Incorrect response body. Expected %q, got %q", expectedBody, receivedBody)
+		}
+	}
 }
 
 // Should not cache the response to a request with a `Authorization` header.
