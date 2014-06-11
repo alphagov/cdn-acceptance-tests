@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"regexp"
@@ -29,73 +28,6 @@ func TestProtocolRedirect(t *testing.T) {
 	}
 	if d := resp.Header.Get("Location"); d != destUrl {
 		t.Errorf("Location header expected %s, got %s", destUrl, d)
-	}
-}
-
-// Should send request to origin by default
-func TestRequestsGoToOriginByDefault(t *testing.T) {
-	uuid := NewUUID()
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
-			w.Header().Set("EnsureOriginServed", uuid)
-		}
-	})
-
-	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
-
-	req, _ := http.NewRequest("GET", sourceUrl, nil)
-	resp, err := client.RoundTrip(req)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != 200 {
-		t.Errorf("Status code expected 200, got %d", resp.StatusCode)
-	}
-	if d := resp.Header.Get("EnsureOriginServed"); d != uuid {
-		t.Errorf("EnsureOriginServed header has not come from Origin: expected %q, got %q", uuid, d)
-	}
-
-}
-
-// Should cache first response and return it on second request without
-// hitting origin again.
-func TestFirstResponseCached(t *testing.T) {
-	const bodyExpected = "first request"
-	const requestsExpectedCount = 1
-	requestsReceivedCount := 0
-
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		if requestsReceivedCount == 0 {
-			w.Write([]byte(bodyExpected))
-		} else {
-			w.Write([]byte("subsequent request"))
-		}
-
-		requestsReceivedCount++
-	})
-
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
-
-	for i := 0; i < 2; i++ {
-		resp, err := client.RoundTrip(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(body) != bodyExpected {
-			t.Errorf("Incorrect response body. Expected %q, got %q", bodyExpected, body)
-		}
-	}
-
-	if requestsReceivedCount > requestsExpectedCount {
-		t.Errorf("originServer got too many requests. Expected %d requests, got %d", requestsExpectedCount, requestsReceivedCount)
 	}
 }
 
@@ -165,100 +97,11 @@ func TestHeaderHostUnmodified(t *testing.T) {
 	t.Error("Not implemented")
 }
 
-// Should set a default TTL if the response doesn't set one.
-func TestDefaultTTL(t *testing.T) {
-	t.Error("Not implemented")
-}
-
-// Should serve stale object and not hit mirror(s) if origin is down and
-// object is beyond TTL but still in cache.
-func TestFailoverOriginDownServeStale(t *testing.T) {
-	t.Error("Not implemented")
-}
-
-// Should serve stale object and not hit mirror(s) if origin returns a 5xx
-// response and object is beyond TTL but still in cache.
-func TestFailoverOrigin5xxServeStale(t *testing.T) {
-	t.Error("Not implemented")
-}
-
-// Should fallback to first mirror if origin is down and object is not in
-// cache (active or stale).
-func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
-	t.Error("Not implemented")
-}
-
-// Should fallback to first mirror if origin returns 5xx response and object
-// is not in cache (active or stale).
-func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
-	t.Error("Not implemented")
-}
-
-// Should fallback to second mirror if both origin and first mirror are
-// down.
-func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
-	t.Error("Not implemented")
-}
-
-// Should fallback to second mirror if both origin and first mirror return
-// 5xx responses.
-func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
-	t.Error("Not implemented")
-}
-
-// Should not fallback to mirror if origin returns a 5xx response with a
-// No-Fallback header.
-func TestFailoverNoFallbackHeader(t *testing.T) {
-	t.Error("Not implemented")
-}
-
 // Should serve a known static error page if cannot serve a page
 // from origin, stale or any mirror.
 // NB: ideally this should be a page that we control that has a mechanism
 //     to alert us that it has been served.
 func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
-	t.Error("Not implemented")
-}
-
-// Should not cache a response with a Set-Cookie header.
-func TestNoCacheHeaderSetCookie(t *testing.T) {
-	requestsReceivedCount := 0
-	responseBodies := []string{
-		"first response",
-		"second response",
-		"third response",
-	}
-
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Set-Cookie", "sekret=mekmitasdigoat")
-		w.Write([]byte(responseBodies[requestsReceivedCount]))
-		requestsReceivedCount++
-	})
-
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
-
-	for _, expectedBody := range responseBodies {
-		resp, err := client.RoundTrip(req)
-
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if receivedBody := string(body); receivedBody != expectedBody {
-			t.Errorf("Incorrect response body. Expected %q, got %q", expectedBody, receivedBody)
-		}
-	}
-}
-
-// Should not cache a response with a Cache-Control: private header.
-func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
 	t.Error("Not implemented")
 }
 
