@@ -32,7 +32,22 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 	}
 }
 
-// Should not cache a response with a Set-Cookie header.
+// Should not cache the response to a POST request.
+func TestNoCachePOST(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should not cache the response to a request with a `Authorization` header.
+func TestNoCacheHeaderAuthorization(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should not cache the response to a request with a `Cookie` header.
+func TestNoCacheHeaderCookie(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should not cache a response with a `Set-Cookie` header.
 func TestNoCacheHeaderSetCookie(t *testing.T) {
 	requestsReceivedCount := 0
 	responseBodies := []string{
@@ -69,7 +84,7 @@ func TestNoCacheHeaderSetCookie(t *testing.T) {
 	}
 }
 
-// Should not cache a response with a Cache-Control: private header.
+// Should not cache a response with a `Cache-Control: private` header.
 func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
 	t.Error("Not implemented")
 }
