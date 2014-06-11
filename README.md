@@ -23,6 +23,9 @@ it can inspect the input and output of the CDN.
               +---------+
 ```
 
+When testing a real CDN, the tests must be run on a server that the CDN can
+connect to.
+
 It will not configure the CDN service for you; you'll need to do so,
 pointing it at the machine that will be running the tests.
 
@@ -37,3 +40,22 @@ To run the tests:
 ```sh
 go test
 ```
+
+## Mock CDN virtual machine
+
+You can use the included Vagrant VM, which runs Nginx and Varnish, to mock
+CDN behaviour. This can be useful when developing new tests or
+functionality when working offline or in parallel to someone else.
+
+It is unlikely that *all* tests will run successfully. If you want a
+particular test to pass you may need to modify the Nginx or Varnish configs
+in [`mock_cdn_config/`](/mock_cdn_config) accordingly.
+
+To bring up the VM and point the tests at it:
+```
+vagrant up && vagrant provision
+go test -edgeHost 172.16.20.10 -skipVerifyTLS
+```
+
+Please note that this is not a complete substitute for the real thing. You
+**must** test against a real CDN before submitting any pull requests.

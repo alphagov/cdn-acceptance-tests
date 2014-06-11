@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"regexp"
 	"testing"
@@ -15,9 +16,9 @@ import (
 const requestTimeout = time.Second * 5
 
 var (
-	edgeHost    = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
-	originPort  = flag.Int("originPort", 8080, "Origin port to listen on for requests")
-	insecureTLS = flag.Bool("insecureTLS", false, "Whether to check server certificates")
+	edgeHost      = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
+	originPort    = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 
 	client       *http.Transport
 	originServer *CDNServeMux
@@ -29,7 +30,7 @@ func init() {
 	flag.Parse()
 
 	tlsOptions := &tls.Config{}
-	if *insecureTLS {
+	if *skipVerifyTLS {
 		tlsOptions.InsecureSkipVerify = true
 	}
 
@@ -39,8 +40,8 @@ func init() {
 	}
 	originServer = StartServer(*originPort)
 
-	log.Println("Confirming that CDN has successfully probed Origin")
-	err := confirmOriginIsEnabled(originServer, *edgeHost)
+	log.Println("Confirming that CDN is healthy")
+	err := confirmEdgeIsHealthy(originServer, *edgeHost)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -141,9 +142,25 @@ func TestFirstResponseCached(t *testing.T) {
 	}
 }
 
-// Should return 403 for PURGE requests from IPs not in the whitelist.
+// Should return 403 for PURGE requests from IPs not in the whitelist. We
+// assume that this is not running from a whitelisted address.
 func TestRestrictPurgeRequests(t *testing.T) {
-	t.Error("Not implemented")
+	const expectedStatusCode = 403
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("Request should not have made it to origin")
+	})
+
+	url := fmt.Sprintf("https://%s/", *edgeHost)
+	req, _ := http.NewRequest("PURGE", url, nil)
+
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != expectedStatusCode {
+		t.Errorf("Incorrect status code. Expected %d, got %d", expectedStatusCode, resp.StatusCode)
+	}
 }
 
 // Should create an X-Forwarded-For header containing the client's IP.
@@ -159,7 +176,31 @@ func TestHeaderAppendXFF(t *testing.T) {
 // Should create a True-Client-IP header containing the client's IP
 // address, discarding the value provided in the original request.
 func TestHeaderUnspoofableClientIP(t *testing.T) {
-	t.Error("Not implemented")
+	const headerName = "True-Client-IP"
+	const sentHeaderVal = "203.0.113.99"
+	var sentHeaderIP = net.ParseIP(sentHeaderVal)
+	var receivedHeaderVal string
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaderVal = r.Header.Get(headerName)
+	})
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set(headerName, sentHeaderVal)
+
+	_, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	receivedHeaderIP := net.ParseIP(receivedHeaderVal)
+	if receivedHeaderIP == nil {
+		t.Fatalf("Origin received %q header with non-IP value %q", headerName, receivedHeaderVal)
+	}
+	if receivedHeaderIP.Equal(sentHeaderIP) {
+		t.Errorf("Origin received %q header with unmodified value %q", headerName, receivedHeaderIP)
+	}
 }
 
 // Should not modify Host header from original request.
@@ -273,7 +314,57 @@ func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
 }
 
 // Should set an X-Cache-Hits header containing hit count for this object,
-// from the provider not origin
+// from the Edge AND the Origin, assuming Origin sets one.
+// This is in the format "{origin-hit-count}, {edge-hit-count}"
 func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
-	t.Error("Not implemented")
+
+	const originXCacheHits = "53"
+
+	var (
+		xCacheHits         string
+		expectedXCacheHits string
+	)
+
+	uuid := NewUUID()
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
+			w.Header().Set("X-Cache-Hits", originXCacheHits)
+		}
+	})
+
+	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
+
+	// Get first request, will come from origin. Edge Hit Count 0
+	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	xCacheHits = resp.Header.Get("X-Cache-Hits")
+	expectedXCacheHits = fmt.Sprintf("%s, 0", originXCacheHits)
+	if xCacheHits != expectedXCacheHits {
+		t.Errorf(
+			"X-Cache-Hits on initial hit is wrong: expected %q, got %q",
+			expectedXCacheHits,
+			xCacheHits,
+		)
+	}
+
+	// Get request again. Should come from Edge now, hit count 1
+	resp, err = client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	xCacheHits = resp.Header.Get("X-Cache-Hits")
+	expectedXCacheHits = fmt.Sprintf("%s, 1", originXCacheHits)
+	if xCacheHits != expectedXCacheHits {
+		t.Errorf(
+			"X-Cache-Hits on second hit is wrong: expected %q, got %q",
+			expectedXCacheHits,
+			xCacheHits,
+		)
+	}
+
 }
