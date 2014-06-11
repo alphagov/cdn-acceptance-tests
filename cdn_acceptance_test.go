@@ -251,16 +251,10 @@ func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
 
 	expectedFastlyXServedByRegexp := regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
 
-	uuid := NewUUID()
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
-			w.WriteHeader(200)
-		}
-	})
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
 
-	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
+	sourceUrl := fmt.Sprintf("https://%s/", *edgeHost)
 
-	// Get first request, will come from origin. Edge Hit Count 0
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
 	resp, err := client.RoundTrip(req)
 	if err != nil {
