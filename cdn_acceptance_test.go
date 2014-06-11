@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -286,9 +287,30 @@ func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
 	t.Error("Not implemented")
 }
 
-// Should set an X-Served-By header giving information on the node and location served from.
-func TestXServedByHeaderContainsANodeIdAndLocation(t *testing.T) {
-	t.Error("Not implemented")
+// Should set an X-Served-By header giving information on the (Fastly) node and location served from.
+func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
+
+	expectedFastlyXServedByRegexp := regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
+
+	sourceUrl := fmt.Sprintf("https://%s/", *edgeHost)
+
+	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actualHeader := resp.Header.Get("X-Served-By")
+	if actualHeader == "" {
+		t.Error("X-Served-By header has not been set by Edge")
+	}
+
+	if expectedFastlyXServedByRegexp.FindString(actualHeader) != actualHeader {
+		t.Errorf("X-Served-By is not as expected: got %q", actualHeader)
+	}
+
 }
 
 // Should set an X-Cache-Hits header containing hit count for this object,

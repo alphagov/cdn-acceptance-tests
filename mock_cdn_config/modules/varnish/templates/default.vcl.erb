@@ -28,6 +28,14 @@ sub vcl_recv {
 
 sub vcl_deliver {
 
+  # Mock the X-Served-By header behaviour to match Fastly.
+  # NB "cache-wibble-GDS" is a fake server.identity
+  if(!resp.http.X-Served-By) {
+    set resp.http.X-Served-By  = "cache-wibble-GDS";
+  } else {
+    set resp.http.X-Served-By = resp.http.X-Served-By + ", " + "cache-wibble-GDS";
+  }
+
   if(!resp.http.X-Cache-Hits) {
     set resp.http.X-Cache-Hits = obj.hits;
   } else {
