@@ -120,7 +120,7 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		if requestReceivedCount == 0 {
-			//w.Header().Set("Age", fmt.Sprintf("%d", originAgeInSeconds))
+			w.Header().Set("Age", fmt.Sprintf("%d", originAgeInSeconds))
 			w.Write([]byte("cacheable request"))
 		} else {
 			t.Error("Unexpected subsequent request received at Origin")
