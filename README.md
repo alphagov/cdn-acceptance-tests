@@ -36,9 +36,14 @@ You will need the Go 1.x runtime installed. To install this on OS X:
 brew install go
 ```
 
-To run the tests:
+To run all the tests:
 ```sh
 go test
+```
+
+To run a subset of tests based on a regex:
+```sh
+go test -run 'Test(Cache|NoCache)'
 ```
 
 ## Writing tests
