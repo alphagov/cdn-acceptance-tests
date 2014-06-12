@@ -85,6 +85,6 @@ func confirmEdgeIsHealthy(mux *CDNServeMux, edgeHost string) error {
 		}
 		time.Sleep(timeBetweenAttempts)
 	}
-	return fmt.Errorf("CDN still not available after %n attempts", maxRetries)
+	return fmt.Errorf("CDN still not available after %d attempts", maxRetries)
 
 }
