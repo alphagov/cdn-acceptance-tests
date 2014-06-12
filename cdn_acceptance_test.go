@@ -114,7 +114,7 @@ func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
 // Should set an Age header itself rather than passing the Age header from origin.
 func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 	const originAgeInSeconds = 100000
-	const secondsToWaitBetweenRequests = 1
+	const secondsToWaitBetweenRequests = 2
 	requestReceivedCount := 0
 	uuid := NewUUID()
 
@@ -134,29 +134,35 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(resp)
 
 	// wait a little bit. Edge should update the Age header, we know Origin will not
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Duration(secondsToWaitBetweenRequests) * time.Second)
 
 	resp, err = client.RoundTrip(req)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(resp)
 
 	edgeAgeHeader := resp.Header.Get("Age")
 	edgeAgeInSeconds, convErr := strconv.Atoi(edgeAgeHeader)
 	if convErr != nil {
 		t.Fatal(convErr)
 	}
-	if edgeAgeInSeconds == originAgeInSeconds {
-		t.Error("Age header from Edge is same as Origin. It should be greater.")
-	}
-	if edgeAgeInSeconds == originAgeInSeconds+1 {
+	if edgeAgeInSeconds == secondsToWaitBetweenRequests {
+		// Edge has rewritten Age based on how long it has been since it
+		// cached the page.
 		return
+	} else if edgeAgeInSeconds == originAgeInSeconds+secondsToWaitBetweenRequests {
+		t.Error("Edge is adding to Age header from Origin. This is not as expected.")
+	} else if edgeAgeInSeconds == 0 {
+		t.Error("Edge is reporting Age to be '0'. This implies Egde is not preserving Age between cache nodes")
 	}
-	t.Errorf("Age header from Edge is not as expected. Got %q", edgeAgeHeader)
+
+	t.Errorf(
+		"Age header from Edge is not as expected. Got %q, expected '%d'",
+		edgeAgeHeader,
+		secondsToWaitBetweenRequests,
+	)
 
 }
 
