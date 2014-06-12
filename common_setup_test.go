@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -70,5 +69,5 @@ func HardCachedHostDial(network, addr string) (net.Conn, error) {
 		return net.Dial(network, addr)
 	}
 	ipAddr := CachedHostIpAddress(host)
-	return net.Dial(network, fmt.Sprintf("%s:%s", ipAddr, port))
+	return net.Dial(network, net.JoinHostPort(ipAddr, port))
 }
