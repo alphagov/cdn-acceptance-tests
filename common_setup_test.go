@@ -3,7 +3,9 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"time"
 )
@@ -22,6 +24,8 @@ var (
 	originServer *CDNServeMux
 )
 
+var hardCachedEdgeHostIp string
+
 // Setup clients and servers.
 func init() {
 
@@ -35,6 +39,7 @@ func init() {
 	client = &http.Transport{
 		ResponseHeaderTimeout: requestTimeout,
 		TLSClientConfig:       tlsOptions,
+		Dial:                  HardCachedHostDial,
 	}
 	originServer = StartServer(*originPort)
 
@@ -43,4 +48,27 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func CachedHostIpAddress(host string) string {
+	if hardCachedEdgeHostIp == "" {
+		ipAddresses, err := net.LookupHost(host)
+		if err != nil {
+			log.Fatal(err)
+		}
+		hardCachedEdgeHostIp = ipAddresses[0]
+	}
+	return hardCachedEdgeHostIp
+}
+
+func HardCachedHostDial(network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if host == "localhost" {
+		return net.Dial(network, addr)
+	}
+	ipAddr := CachedHostIpAddress(host)
+	return net.Dial(network, fmt.Sprintf("%s:%s", ipAddr, port))
 }
