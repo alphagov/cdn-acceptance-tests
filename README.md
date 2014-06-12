@@ -41,6 +41,23 @@ To run the tests:
 go test
 ```
 
+## Writing tests
+
+When writing new tests please be sure to:
+
+- group the test in a file with other tests of similar behaviour e.g.
+  "custom failover"
+- use a consistent naming prefix for the functions that so that they can be
+  run as a group e.g. `func TestCustomFailover…(…)`
+- always call `SwitchHandler(…)` at the beginning of a test for any
+  `CDNServeMux` you intend to use during that test. Even if it is just to
+  reset the handler to an empty function. Otherwise you may experience
+  undesired effects such as runtime panics.
+- Define static inputs such as "number of requests" or "time between
+  requests" at the beginning of the test so that they're easy to locate. Use
+  constants where possible to indicate that they won't be changed at
+  runtime.
+
 ## Mock CDN virtual machine
 
 You can use the included Vagrant VM, which runs Nginx and Varnish, to mock
