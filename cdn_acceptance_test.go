@@ -125,6 +125,7 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 		} else {
 			t.Error("Unexpected subsequent request received at Origin")
 		}
+		requestReceivedCount++
 	})
 
 	url := fmt.Sprintf("https://%s/?cache-lock=%s", *edgeHost, uuid)
