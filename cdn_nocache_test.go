@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"testing"
 )
@@ -32,44 +31,52 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 	}
 }
 
-// Should not cache a response with a Set-Cookie header.
-func TestNoCacheHeaderSetCookie(t *testing.T) {
-	requestsReceivedCount := 0
-	responseBodies := []string{
-		"first response",
-		"second response",
-		"third response",
-	}
+// Should not cache the response to a POST request.
+func TestNoCachePOST(t *testing.T) {
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("POST", url, nil)
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Set-Cookie", "sekret=mekmitasdigoat")
-		w.Write([]byte(responseBodies[requestsReceivedCount]))
-		requestsReceivedCount++
-	})
+	testThreeRequestsNotCached(t, req, nil)
+}
+
+// Should not cache the response to a request with a `Authorization` header.
+func TestNoCacheHeaderAuthorization(t *testing.T) {
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", "Basic YXJlbnR5b3U6aW5xdWlzaXRpdmU=")
+
+	testThreeRequestsNotCached(t, req, nil)
+}
+
+// Should not cache the response to a request with a `Cookie` header.
+func TestNoCacheHeaderCookie(t *testing.T) {
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Cookie", "sekret=mekmitasdigoat")
+
+	testThreeRequestsNotCached(t, req, nil)
+}
+
+// Should not cache a response with a `Set-Cookie` header.
+func TestNoCacheHeaderSetCookie(t *testing.T) {
+	handler := func(h http.Header) {
+		h.Set("Set-Cookie", "sekret=mekmitasdigoat")
+	}
 
 	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
 	req, _ := http.NewRequest("GET", url, nil)
 
-	for _, expectedBody := range responseBodies {
-		resp, err := client.RoundTrip(req)
-
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if receivedBody := string(body); receivedBody != expectedBody {
-			t.Errorf("Incorrect response body. Expected %q, got %q", expectedBody, receivedBody)
-		}
-	}
+	testThreeRequestsNotCached(t, req, handler)
 }
 
-// Should not cache a response with a Cache-Control: private header.
+// Should not cache a response with a `Cache-Control: private` header.
 func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
-	t.Error("Not implemented")
+	handler := func(h http.Header) {
+		h.Set("Cache-Control", "private")
+	}
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+
+	testThreeRequestsNotCached(t, req, handler)
 }

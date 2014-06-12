@@ -26,6 +26,12 @@ sub vcl_recv {
   set req.http.True-Client-IP = req.http.Fastly-Client-IP;
 }
 
+sub vcl_fetch {
+  if (beresp.http.Cache-Control ~ "private") {
+    return (hit_for_pass);
+  }
+}
+
 sub vcl_deliver {
 
   # Mock the X-Served-By header behaviour to match Fastly.
