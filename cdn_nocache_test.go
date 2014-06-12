@@ -71,5 +71,12 @@ func TestNoCacheHeaderSetCookie(t *testing.T) {
 
 // Should not cache a response with a `Cache-Control: private` header.
 func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
-	t.Error("Not implemented")
+	handler := func(h http.Header) {
+		h.Set("Cache-Control", "private")
+	}
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+
+	testThreeRequestsNotCached(t, req, handler)
 }
