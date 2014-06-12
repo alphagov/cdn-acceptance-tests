@@ -50,7 +50,11 @@ func TestNoCacheHeaderAuthorization(t *testing.T) {
 
 // Should not cache the response to a request with a `Cookie` header.
 func TestNoCacheHeaderCookie(t *testing.T) {
-	t.Error("Not implemented")
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Cookie", "sekret=mekmitasdigoat")
+
+	testThreeRequestsNotCached(t, req, nil)
 }
 
 // Should not cache a response with a `Set-Cookie` header.
