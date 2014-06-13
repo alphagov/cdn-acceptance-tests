@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"testing"
 )
 
@@ -31,7 +32,11 @@ func TestCacheCacheControlMaxAge(t *testing.T) {
 // Should cache responses with a `Cache-Control: no-cache` header. Varnish
 // doesn't respect this by default.
 func TestCacheCacheControlNoCache(t *testing.T) {
-	t.Error("Not implemented")
+	handler := func(h http.Header) {
+		h.Set("Cache-Control", "no-cache")
+	}
+
+	testThreeRequestsAreCached(t, handler)
 }
 
 // Should cache responses with a status code of 404. It's a common
