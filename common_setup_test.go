@@ -66,7 +66,8 @@ func CachedHostIpAddress(host string) string {
 // HardCachedHostDial acts as a replacement Dial function, ostensibly for
 // http.Transport. It uses the IP address returned by CachedHostIpAddresss
 // and passes that to the stock net.Dial function, to prevent repeat DNS
-// lookups of the provided hostname in addr.
+// lookups of the provided hostname in addr. This is to prevent us from switching
+// from one CDN location to another mid-test.
 func HardCachedHostDial(network, addr string) (net.Conn, error) {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
