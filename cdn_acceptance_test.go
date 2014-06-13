@@ -161,7 +161,7 @@ func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
 // Should set an Age header itself rather than passing the Age header from origin.
 func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 	const originAgeInSeconds = 100000
-	const secondsToWaitBetweenRequests = 2
+	const secondsToWaitBetweenRequests = 5
 	requestReceivedCount := 0
 	uuid := NewUUID()
 
@@ -183,6 +183,10 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if resp.StatusCode != 200 {
+		t.Fatalf("Edge returned an unexpected status: %q", resp.Status)
+	}
+
 	// wait a little bit. Edge should update the Age header, we know Origin will not
 	time.Sleep(time.Duration(secondsToWaitBetweenRequests) * time.Second)
 
@@ -191,7 +195,15 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if resp.StatusCode != 200 {
+		t.Fatal("Edge returned an unexpected status: %q", resp.Status)
+	}
+
 	edgeAgeHeader := resp.Header.Get("Age")
+	if edgeAgeHeader == "" {
+		t.Fatal("Age Header is not set")
+	}
+
 	edgeAgeInSeconds, convErr := strconv.Atoi(edgeAgeHeader)
 	if convErr != nil {
 		t.Fatal(convErr)
