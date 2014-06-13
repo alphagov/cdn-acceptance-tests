@@ -90,13 +90,13 @@ func confirmEdgeIsHealthy(mux *CDNServeMux, edgeHost string) error {
 	return fmt.Errorf("CDN still not available after %d attempts", maxRetries)
 }
 
-// Callback function to modify response headers.
-type responseHeaderCallback func(h http.Header)
+// Callback function to modify complete response.
+type responseCallback func(w http.ResponseWriter)
 
 // Helper function to make three requests and verify that the first response
-// is cached and returned for all three requests. A responseHeaderCallback,
-// if not nil, will be called to modify the response headers.
-func testThreeRequestsAreCached(t *testing.T, headerCB responseHeaderCallback) {
+// is cached and returned for all three requests. A responseCallback, if not
+// nil, will be called to modify the response before calling Write().
+func testThreeRequestsAreCached(t *testing.T, respCB responseCallback) {
 	const requestsExpectedCount = 1
 	requestsReceivedCount := 0
 	responseBodies := []string{
@@ -109,8 +109,8 @@ func testThreeRequestsAreCached(t *testing.T, headerCB responseHeaderCallback) {
 	req, _ := http.NewRequest("GET", url, nil)
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		if headerCB != nil {
-			headerCB(w.Header())
+		if respCB != nil {
+			respCB(w)
 		}
 		w.Write([]byte(responseBodies[requestsReceivedCount]))
 		requestsReceivedCount++
@@ -146,6 +146,9 @@ func testThreeRequestsAreCached(t *testing.T, headerCB responseHeaderCallback) {
 		)
 	}
 }
+
+// Callback function to modify response headers.
+type responseHeaderCallback func(h http.Header)
 
 // Helper function to make three requests and verify that we get three
 // unique and uncached responses back. A responseHeaderCallback, if not nil,

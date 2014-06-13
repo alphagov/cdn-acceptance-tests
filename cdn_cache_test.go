@@ -32,8 +32,8 @@ func TestCacheCacheControlMaxAge(t *testing.T) {
 // Should cache responses with a `Cache-Control: no-cache` header. Varnish
 // doesn't respect this by default.
 func TestCacheCacheControlNoCache(t *testing.T) {
-	handler := func(h http.Header) {
-		h.Set("Cache-Control", "no-cache")
+	handler := func(w http.ResponseWriter) {
+		w.Header().Set("Cache-Control", "no-cache")
 	}
 
 	testThreeRequestsAreCached(t, handler)
