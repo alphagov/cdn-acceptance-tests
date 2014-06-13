@@ -48,7 +48,33 @@ func TestCacheFirstResponse(t *testing.T) {
 	}
 }
 
-// Should set a default TTL if the response doesn't set one.
+// Should cache responses with default TTL if the response doesn't specify
+// a period itself.
 func TestCacheDefaultTTL(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should cache responses for the period defined in a `Expires: n` response
+// header.
+func TestCacheExpires(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should cache responses for the period defined in a `Cache-Control:
+// max-age=n` response header.
+func TestCacheCacheControlMaxAge(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should cache responses with a `Cache-Control: no-cache` header. Varnish
+// doesn't respect this by default.
+func TestCacheCacheControlNoCache(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should cache responses with a status code of 404. It's a common
+// misconception that 404 responses shouldn't be cached; they should because
+// they can be expensive to generate.
+func TestCache404Response(t *testing.T) {
 	t.Error("Not implemented")
 }
