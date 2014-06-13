@@ -160,13 +160,14 @@ func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
 
 // Should set an Age header itself rather than passing the Age header from origin.
 func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
-	const originAgeInSeconds = 100000
+	const originAgeInSeconds = 100
 	const secondsToWaitBetweenRequests = 5
 	requestReceivedCount := 0
 	uuid := NewUUID()
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		if requestReceivedCount == 0 {
+			w.Header().Set("Cache-Control", "max-age=1800, public")
 			w.Header().Set("Age", fmt.Sprintf("%d", originAgeInSeconds))
 			w.Write([]byte("cacheable request"))
 		} else {
@@ -208,21 +209,15 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 	if convErr != nil {
 		t.Fatal(convErr)
 	}
-	if edgeAgeInSeconds == secondsToWaitBetweenRequests {
-		// Edge has rewritten Age based on how long it has been since it
-		// cached the page.
-		return
-	} else if edgeAgeInSeconds == originAgeInSeconds+secondsToWaitBetweenRequests {
-		t.Error("Edge is adding to Age header from Origin. This is not as expected.")
-	} else if edgeAgeInSeconds == 0 {
-		t.Error("Edge is reporting Age to be '0'. This implies Egde is not preserving Age between cache nodes")
-	}
 
-	t.Errorf(
-		"Age header from Edge is not as expected. Got %q, expected '%d'",
-		edgeAgeHeader,
-		secondsToWaitBetweenRequests,
-	)
+	expectedAgeInSeconds := originAgeInSeconds + secondsToWaitBetweenRequests
+	if edgeAgeInSeconds != expectedAgeInSeconds {
+		t.Errorf(
+			"Age header from Edge is not as expected. Got %q, expected '%d'",
+			edgeAgeHeader,
+			expectedAgeInSeconds,
+		)
+	}
 
 }
 
