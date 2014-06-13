@@ -92,9 +92,41 @@ func TestHeaderUnspoofableClientIP(t *testing.T) {
 	}
 }
 
-// Should not modify Host header from original request.
+// Should not modify `Host` header from original request.
 func TestHeaderHostUnmodified(t *testing.T) {
-	t.Error("Not implemented")
+	const headerName = "Host"
+	var sentHeaderVal = *edgeHost
+	var receivedHeaderVal string
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaderVal = r.Host
+	})
+
+	url := fmt.Sprintf("https://%s/%s", sentHeaderVal, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+
+	if req.Host != sentHeaderVal {
+		t.Errorf(
+			"Constructed request contains wrong %q header. Expected %q, got %q",
+			headerName,
+			sentHeaderVal,
+			req.Host,
+		)
+	}
+
+	_, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if receivedHeaderVal != sentHeaderVal {
+		t.Errorf(
+			"Origin received %q header with modified value. Expected %q, got %q",
+			headerName,
+			sentHeaderVal,
+			receivedHeaderVal,
+		)
+	}
 }
 
 // Should serve a known static error page if cannot serve a page
