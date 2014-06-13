@@ -43,5 +43,9 @@ func TestCacheCacheControlNoCache(t *testing.T) {
 // misconception that 404 responses shouldn't be cached; they should because
 // they can be expensive to generate.
 func TestCache404Response(t *testing.T) {
-	t.Error("Not implemented")
+	handler := func(w http.ResponseWriter) {
+		w.WriteHeader(http.StatusNotFound)
+	}
+
+	testThreeRequestsAreCached(t, handler)
 }
