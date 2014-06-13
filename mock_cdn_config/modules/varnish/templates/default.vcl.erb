@@ -48,6 +48,20 @@ sub vcl_deliver {
     set resp.http.X-Cache-Hits = resp.http.X-Cache-Hits + ", " + obj.hits;
   }
 
+  if(!resp.http.X-Cache) {
+    if (obj.hits > 0) {
+      set resp.http.X-Cache = "HIT";
+    } else {
+      set resp.http.X-Cache = "MISS";
+    }
+  } else {
+    if (obj.hits > 0) {
+      set resp.http.X-Cache = resp.http.X-Cache + ", HIT";
+    } else {
+      set resp.http.X-Cache = resp.http.X-Cache + ", MISS";
+    }
+  }
+
 }
 
 sub vcl_error {
