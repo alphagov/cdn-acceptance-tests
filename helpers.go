@@ -93,6 +93,60 @@ func confirmEdgeIsHealthy(mux *CDNServeMux, edgeHost string) error {
 // Callback function to modify response headers.
 type responseHeaderCallback func(h http.Header)
 
+// Helper function to make three requests and verify that the first response
+// is cached and returned for all three requests. A responseHeaderCallback,
+// if not nil, will be called to modify the response headers.
+func testThreeRequestsAreCached(t *testing.T, headerCB responseHeaderCallback) {
+	const requestsExpectedCount = 1
+	requestsReceivedCount := 0
+	responseBodies := []string{
+		"first response",
+		"second response bypassed cache",
+		"third response bypassed cache",
+	}
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if headerCB != nil {
+			headerCB(w.Header())
+		}
+		w.Write([]byte(responseBodies[requestsReceivedCount]))
+		requestsReceivedCount++
+	})
+
+	for i := 0; i < len(responseBodies); i++ {
+		resp, err := client.RoundTrip(req)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if receivedBody := string(body); receivedBody != responseBodies[0] {
+			t.Errorf(
+				"Incorrect response body. Expected %q, got %q",
+				responseBodies[0],
+				receivedBody,
+			)
+		}
+	}
+
+	if requestsReceivedCount != requestsExpectedCount {
+		t.Errorf(
+			"Origin received the wrong number of requests. Expected %d, got %d",
+			requestsExpectedCount,
+			requestsReceivedCount,
+		)
+	}
+}
+
 // Helper function to make three requests and verify that we get three
 // unique and uncached responses back. A responseHeaderCallback, if not nil,
 // will be called to modify the response headers.
