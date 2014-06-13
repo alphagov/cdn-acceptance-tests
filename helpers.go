@@ -3,7 +3,9 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"testing"
 	"time"
 )
 
@@ -85,6 +87,46 @@ func confirmEdgeIsHealthy(mux *CDNServeMux, edgeHost string) error {
 		}
 		time.Sleep(timeBetweenAttempts)
 	}
-	return fmt.Errorf("CDN still not available after %n attempts", maxRetries)
+	return fmt.Errorf("CDN still not available after %d attempts", maxRetries)
+}
 
+// Callback function to modify response headers.
+type responseHeaderCallback func(h http.Header)
+
+// Helper function to make three requests and verify that we get three
+// unique and uncached responses back. A responseHeaderCallback, if not nil,
+// will be called to modify the response headers.
+func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB responseHeaderCallback) {
+	requestsReceivedCount := 0
+	responseBodies := []string{
+		"first response",
+		"second response",
+		"third response",
+	}
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if headerCB != nil {
+			headerCB(w.Header())
+		}
+		w.Write([]byte(responseBodies[requestsReceivedCount]))
+		requestsReceivedCount++
+	})
+
+	for _, expectedBody := range responseBodies {
+		resp, err := client.RoundTrip(req)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if receivedBody := string(body); receivedBody != expectedBody {
+			t.Errorf("Incorrect response body. Expected %q, got %q", expectedBody, receivedBody)
+		}
+	}
 }

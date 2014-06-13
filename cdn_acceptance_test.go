@@ -54,14 +54,61 @@ func TestRestrictPurgeRequests(t *testing.T) {
 	}
 }
 
-// Should create an X-Forwarded-For header containing the client's IP.
-func TestHeaderCreateXFF(t *testing.T) {
-	t.Error("Not implemented")
-}
+// Should set an `X-Forwarded-For` header for requests that don't already
+// have one and append to requests that already have the header. This test
+// will not work if run from behind a proxy that also sets XFF.
+func TestHeaderXFFCreateAndAppend(t *testing.T) {
+	const headerName = "X-Forwarded-For"
+	const sentHeaderVal = "203.0.113.99"
+	var ourReportedIP net.IP
+	var receivedHeaderVal string
 
-// Should append client's IP to existing X-Forwarded-For header.
-func TestHeaderAppendXFF(t *testing.T) {
-	t.Error("Not implemented")
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		receivedHeaderVal = r.Header.Get(headerName)
+	})
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+
+	// First request with no existing XFF.
+	_, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if receivedHeaderVal == "" {
+		t.Fatalf("Origin didn't receive request with %q header", headerName)
+	}
+
+	ourReportedIP = net.ParseIP(receivedHeaderVal)
+	if ourReportedIP == nil {
+		t.Fatalf(
+			"Expected origin to receive %q header with single IP. Got %q",
+			headerName,
+			receivedHeaderVal,
+		)
+	}
+
+	// Use the IP returned by the first response to predict the second.
+	expectedHeaderVal := fmt.Sprintf("%s, %s", sentHeaderVal, ourReportedIP.String())
+
+	// Second request with existing XFF.
+	url = fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ = http.NewRequest("GET", url, nil)
+	req.Header.Set(headerName, sentHeaderVal)
+
+	_, err = client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if receivedHeaderVal != expectedHeaderVal {
+		t.Errorf(
+			"Origin received %q header with wrong value. Expected %q, got %q",
+			headerName,
+			expectedHeaderVal,
+			receivedHeaderVal,
+		)
+	}
 }
 
 // Should create a True-Client-IP header containing the client's IP
