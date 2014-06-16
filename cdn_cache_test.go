@@ -1,14 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
+	"time"
 )
 
 // Should cache first response and return it on second request without
 // hitting origin again.
 func TestCacheFirstResponse(t *testing.T) {
-	testThreeRequestsAreCached(t, nil)
+	testRequestsCachedIndefinite(t, nil)
 }
 
 // Should cache responses with default TTL if the response doesn't specify
@@ -26,7 +28,14 @@ func TestCacheExpires(t *testing.T) {
 // Should cache responses for the period defined in a `Cache-Control:
 // max-age=n` response header.
 func TestCacheCacheControlMaxAge(t *testing.T) {
-	t.Error("Not implemented")
+	const cacheDuration = time.Duration(5 * time.Second)
+	headerValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
+
+	handler := func(w http.ResponseWriter) {
+		w.Header().Set("Cache-Control", headerValue)
+	}
+
+	testRequestsCachedDuration(t, handler, cacheDuration)
 }
 
 // Should cache responses with a `Cache-Control: no-cache` header. Varnish
@@ -36,7 +45,7 @@ func TestCacheCacheControlNoCache(t *testing.T) {
 		w.Header().Set("Cache-Control", "no-cache")
 	}
 
-	testThreeRequestsAreCached(t, handler)
+	testRequestsCachedIndefinite(t, handler)
 }
 
 // Should cache responses with a status code of 404. It's a common
@@ -47,5 +56,5 @@ func TestCache404Response(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}
 
-	testThreeRequestsAreCached(t, handler)
+	testRequestsCachedIndefinite(t, handler)
 }
