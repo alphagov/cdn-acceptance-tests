@@ -14,6 +14,8 @@ import (
 var (
 	edgeHost      = flag.String("edgeHost", "", "Hostname of edge")
 	originPort    = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+	backupPort1   = flag.Int("backupPort1", 8081, "Backup1 port to listen on for requests")
+	backupPort2   = flag.Int("backupPort2", 8082, "Backup2 port to listen on for requests")
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 )
 
@@ -21,8 +23,10 @@ var (
 const requestTimeout = time.Second * 5
 
 var (
-	client       *http.Transport
-	originServer *CDNServeMux
+	client        *http.Transport
+	originServer  *CDNServeMux
+	backupServer1 *CDNServeMux
+	backupServer2 *CDNServeMux
 )
 
 var hardCachedEdgeHostIp string
@@ -43,13 +47,15 @@ func init() {
 	if *skipVerifyTLS {
 		tlsOptions.InsecureSkipVerify = true
 	}
-
 	client = &http.Transport{
 		ResponseHeaderTimeout: requestTimeout,
 		TLSClientConfig:       tlsOptions,
 		Dial:                  HardCachedHostDial,
 	}
+
 	originServer = StartServer(*originPort)
+	backupServer1 = StartServer(*backupPort1)
+	backupServer2 = StartServer(*backupPort2)
 
 	log.Println("Confirming that CDN is healthy")
 	err := confirmEdgeIsHealthy(originServer, *edgeHost)
