@@ -5,7 +5,9 @@ import (
 	"net"
 	"net/http"
 	"regexp"
+	"strconv"
 	"testing"
+	"time"
 )
 
 // Should redirect from HTTP to HTTPS without hitting origin.
@@ -190,7 +192,65 @@ func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
 
 // Should set an Age header itself rather than passing the Age header from origin.
 func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
-	t.Error("Not implemented")
+	const originAgeInSeconds = 100
+	const secondsToWaitBetweenRequests = 5
+	requestReceivedCount := 0
+	uuid := NewUUID()
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if requestReceivedCount == 0 {
+			w.Header().Set("Cache-Control", "max-age=1800, public")
+			w.Header().Set("Age", fmt.Sprintf("%d", originAgeInSeconds))
+			w.Write([]byte("cacheable request"))
+		} else {
+			t.Error("Unexpected subsequent request received at Origin")
+		}
+		requestReceivedCount++
+	})
+
+	url := fmt.Sprintf("https://%s/?cache-lock=%s", *edgeHost, uuid)
+	req, _ := http.NewRequest("GET", url, nil)
+
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Fatalf("Edge returned an unexpected status: %q", resp.Status)
+	}
+
+	// wait a little bit. Edge should update the Age header, we know Origin will not
+	time.Sleep(time.Duration(secondsToWaitBetweenRequests) * time.Second)
+
+	resp, err = client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Fatal("Edge returned an unexpected status: %q", resp.Status)
+	}
+
+	edgeAgeHeader := resp.Header.Get("Age")
+	if edgeAgeHeader == "" {
+		t.Fatal("Age Header is not set")
+	}
+
+	edgeAgeInSeconds, convErr := strconv.Atoi(edgeAgeHeader)
+	if convErr != nil {
+		t.Fatal(convErr)
+	}
+
+	expectedAgeInSeconds := originAgeInSeconds + secondsToWaitBetweenRequests
+	if edgeAgeInSeconds != expectedAgeInSeconds {
+		t.Errorf(
+			"Age header from Edge is not as expected. Got %q, expected '%d'",
+			edgeAgeHeader,
+			expectedAgeInSeconds,
+		)
+	}
+
 }
 
 // Should set an X-Cache header containing HIT/MISS from 'origin, itself'
