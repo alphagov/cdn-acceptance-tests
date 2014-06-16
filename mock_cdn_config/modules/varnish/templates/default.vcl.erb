@@ -3,6 +3,16 @@ backend default {
   .port = "8080";
 }
 
+backend backup1 {
+  .host = "<%= @ipaddress_vmhost -%>";
+  .port = "8081";
+}
+
+backend backup2 {
+  .host = "<%= @ipaddress_vmhost -%>";
+  .port = "8082";
+}
+
 # Please add the minimal amount of code required to implement/mimic the
 # functionality you need to test. This shouldn't match our real config
 # line-by-line, otherwise we'll have trouble maintaining parity.
@@ -23,10 +33,34 @@ sub vcl_recv {
      error 801 "Force SSL";
   }
 
+  set req.grace = 24h;
+
+  # Note that if (req.restarts == 1), we don't change the backend as
+  # we're attempting to serve from stale.
+
+  if (req.restarts > 1) {
+    # Don't serve from stale for backups
+    set req.grace = 0s;
+    set req.backend = backup1;
+  }
+
+  if (req.restarts > 2) {
+    set req.backend = backup2;
+  }
+
   set req.http.True-Client-IP = req.http.Fastly-Client-IP;
 }
 
 sub vcl_fetch {
+  if ((beresp.status >= 500 && beresp.status <= 599) && req.restarts < 3 && (req.request == "GET" || req.request == "HEAD") && !beresp.http.No-Fallback) {
+    set beresp.saintmode = 5s;
+    return (restart);
+  }
+
+  if (req.restarts == 0) {
+    set beresp.grace = 24h;
+  }
+
   if (beresp.http.Cache-Control ~ "private") {
     return (hit_for_pass);
   }
@@ -65,6 +99,13 @@ sub vcl_deliver {
 }
 
 sub vcl_error {
+  # Assume we've hit vcl_error() because the backend is unavailable
+  # for the first two retries. By restarting, vcl_recv() will try
+  # serving from stale before failing over to the backups.
+  if (req.restarts < 3) {
+    return (restart);
+  }
+
   if (obj.status == 801) {
      set obj.status = 301;
      set obj.response = "Moved Permanently";
