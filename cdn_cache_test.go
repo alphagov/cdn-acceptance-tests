@@ -7,16 +7,11 @@ import (
 	"time"
 )
 
-// Should cache first response and return it on second request without
-// hitting origin again.
+// Should cache first response for an unspecified period of time if when it
+// doesn't specify it's own cache headers. Subsequent requests should return
+// a cached response.
 func TestCacheFirstResponse(t *testing.T) {
 	testRequestsCachedIndefinite(t, nil)
-}
-
-// Should cache responses with default TTL if the response doesn't specify
-// a period itself.
-func TestCacheDefaultTTL(t *testing.T) {
-	t.Error("Not implemented")
 }
 
 // Should cache responses for the period defined in a `Expires: n` response
