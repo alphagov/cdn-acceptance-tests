@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"testing"
 )
 
@@ -47,7 +50,63 @@ func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
 // Should fallback to first mirror if origin returns 5xx response and object
 // is not in cache (active or stale).
 func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
-	t.Error("Not implemented")
+	expectedBody := "lucky golden ticket"
+	expectedStatus := http.StatusOK
+	backendsSawRequest := map[string]bool{}
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := originServer.Name
+		if !backendsSawRequest[name] {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			backendsSawRequest[name] = true
+		} else {
+			t.Errorf("Server %s received more than one request", name)
+		}
+		w.Write([]byte(name))
+	})
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer1.Name
+		if !backendsSawRequest[name] {
+			w.Write([]byte(expectedBody))
+			backendsSawRequest[name] = true
+		} else {
+			t.Errorf("Server %s received more than one request", name)
+			w.Write([]byte(name))
+		}
+	})
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer2.Name
+		t.Errorf("Server %s received a request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+	resp, err := client.RoundTrip(req)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != expectedStatus {
+		t.Errorf(
+			"Received incorrect status code. Expected %d, got %d",
+			expectedStatus,
+			resp.StatusCode,
+		)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bodyStr := string(body); bodyStr != expectedBody {
+		t.Errorf(
+			"Received incorrect response body. Expected %q, got %q",
+			expectedBody,
+			bodyStr,
+		)
+	}
 }
 
 // Should fallback to second mirror if both origin and first mirror are
