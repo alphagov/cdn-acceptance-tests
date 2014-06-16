@@ -40,6 +40,24 @@ func TestCacheCacheControlMaxAge(t *testing.T) {
 	testRequestsCachedDuration(t, handler, cacheDuration)
 }
 
+// Should cache responses for the period defined in a `Cache-Control:
+// max-age=n` response header when a `Expires: n*2` header is also present.
+func TestCacheExpiresAndMaxAge(t *testing.T) {
+	const cacheDuration = time.Duration(5 * time.Second)
+	const expiresDuration = cacheDuration * 2
+
+	maxAgeValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
+
+	handler := func(w http.ResponseWriter) {
+		expiresValue := time.Now().UTC().Add(expiresDuration).Format(http.TimeFormat)
+
+		w.Header().Set("Expires", expiresValue)
+		w.Header().Set("Cache-Control", maxAgeValue)
+	}
+
+	testRequestsCachedDuration(t, handler, cacheDuration)
+}
+
 // Should cache responses with a `Cache-Control: no-cache` header. Varnish
 // doesn't respect this by default.
 func TestCacheCacheControlNoCache(t *testing.T) {
