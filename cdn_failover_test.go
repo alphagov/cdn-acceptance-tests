@@ -118,7 +118,68 @@ func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
 // Should fallback to second mirror if both origin and first mirror return
 // 5xx responses.
 func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
-	t.Error("Not implemented")
+	expectedBody := "lucky golden ticket"
+	expectedStatus := http.StatusOK
+	backendsSawRequest := map[string]bool{}
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := originServer.Name
+		if !backendsSawRequest[name] {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			backendsSawRequest[name] = true
+		} else {
+			t.Errorf("Server %s received more than one request", name)
+		}
+		w.Write([]byte(name))
+	})
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer1.Name
+		if !backendsSawRequest[name] {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			backendsSawRequest[name] = true
+		} else {
+			t.Errorf("Server %s received more than one request", name)
+		}
+		w.Write([]byte(name))
+	})
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer2.Name
+		if !backendsSawRequest[name] {
+			w.Write([]byte(expectedBody))
+			backendsSawRequest[name] = true
+		} else {
+			t.Errorf("Server %s received more than one request", name)
+			w.Write([]byte(name))
+		}
+	})
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+	resp, err := client.RoundTrip(req)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != expectedStatus {
+		t.Errorf(
+			"Received incorrect status code. Expected %d, got %d",
+			expectedStatus,
+			resp.StatusCode,
+		)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bodyStr := string(body); bodyStr != expectedBody {
+		t.Errorf(
+			"Received incorrect response body. Expected %q, got %q",
+			expectedBody,
+			bodyStr,
+		)
+	}
 }
 
 // Should not fallback to mirror if origin returns a 5xx response with a
