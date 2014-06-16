@@ -22,7 +22,14 @@ func TestCacheDefaultTTL(t *testing.T) {
 // Should cache responses for the period defined in a `Expires: n` response
 // header.
 func TestCacheExpires(t *testing.T) {
-	t.Error("Not implemented")
+	const cacheDuration = time.Duration(5 * time.Second)
+
+	handler := func(w http.ResponseWriter) {
+		headerValue := time.Now().UTC().Add(cacheDuration).Format(http.TimeFormat)
+		w.Header().Set("Expires", headerValue)
+	}
+
+	testRequestsCachedDuration(t, handler, cacheDuration)
 }
 
 // Should cache responses for the period defined in a `Cache-Control:
