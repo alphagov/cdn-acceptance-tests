@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -38,7 +39,7 @@ func StartServer(port int) *CDNServeMux {
 	go func() {
 		err := http.ListenAndServe(addr, mux)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}()
 
