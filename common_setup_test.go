@@ -3,13 +3,15 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
 var (
-	edgeHost      = flag.String("edgeHost", "www.gov.uk", "Hostname of edge")
+	edgeHost      = flag.String("edgeHost", "", "Hostname of edge")
 	originPort    = flag.Int("originPort", 8080, "Origin port to listen on for requests")
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 )
@@ -26,6 +28,13 @@ var (
 func init() {
 
 	flag.Parse()
+
+	if *edgeHost == "" {
+		fmt.Println("ERROR: -edgeHost must be set to the CDN edge hostname we wish to test against\n")
+		fmt.Println("Usage:")
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
 
 	tlsOptions := &tls.Config{}
 	if *skipVerifyTLS {
