@@ -255,7 +255,70 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 
 // Should set an X-Cache header containing HIT/MISS from 'origin, itself'
 func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
-	t.Error("Not implemented")
+
+	const originXCache = "HIT"
+
+	var (
+		xCache         string
+		expectedXCache string
+	)
+
+	uuid := NewUUID()
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Cache", originXCache)
+	})
+
+	sourceUrl := fmt.Sprintf("https://%s/?cache-lock=%s", *edgeHost, uuid)
+
+	// Get first request, will come from origin, cannot be cached - hence cache MISS
+	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	xCache = resp.Header.Get("X-Cache")
+	expectedXCache = fmt.Sprintf("%s, MISS", originXCache)
+	if xCache != expectedXCache {
+		t.Errorf(
+			"X-Cache on initial hit is wrong: expected %q, got %q",
+			expectedXCache,
+			xCache,
+		)
+	}
+
+}
+
+// Should set an X-Cache header containing only MISS if origin does not set an X-Cache Header'
+func TestXCacheHeaderContainsMissOnlyIfOriginDoesNotSetXCache(t *testing.T) {
+
+	const expectedXCache = "MISS"
+
+	var (
+		xCache string
+	)
+
+	uuid := NewUUID()
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
+
+	sourceUrl := fmt.Sprintf("https://%s/?cache-lock=%s", *edgeHost, uuid)
+
+	// Get first request, will come from origin, cannot be cached - hence cache MISS
+	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	xCache = resp.Header.Get("X-Cache")
+	if xCache != expectedXCache {
+		t.Errorf(
+			"X-Cache on initial hit is wrong: expected %q, got %q",
+			expectedXCache,
+			xCache,
+		)
+	}
+
 }
 
 // Should set an X-Served-By header giving information on the (Fastly) node and location served from.
