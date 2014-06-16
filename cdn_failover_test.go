@@ -4,6 +4,22 @@ import (
 	"testing"
 )
 
+// Should serve a known static error page if all backend servers are down
+// and object isn't in cache/stale.
+// NB: ideally this should be a page that we control that has a mechanism
+//     to alert us that it has been served.
+func TestFailoverErrorPageAllServersDown(t *testing.T) {
+	t.Error("Not implemented")
+}
+
+// Should serve a known static error page if all backend servers return a
+// 5xx response and object isn't in cache/stale.
+// NB: ideally this should be a page that we control that has a mechanism
+//     to alert us that it has been served.
+func TestFailoverErrorPageAllServers5xx(t *testing.T) {
+	t.Error("Not implemented")
+}
+
 // Should serve stale object and not hit mirror(s) if origin is down and
 // object is beyond TTL but still in cache.
 func TestFailoverOriginDownServeStale(t *testing.T) {

@@ -178,14 +178,6 @@ func TestHeaderHostUnmodified(t *testing.T) {
 	}
 }
 
-// Should serve a known static error page if cannot serve a page
-// from origin, stale or any mirror.
-// NB: ideally this should be a page that we control that has a mechanism
-//     to alert us that it has been served.
-func TestErrorPageIsServedWhenNoBackendAvailable(t *testing.T) {
-	t.Error("Not implemented")
-}
-
 // ---------------------------------------------------------
 // Test that useful common cache-related parameters are sent to the
 // client by this CDN provider.
