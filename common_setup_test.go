@@ -53,12 +53,8 @@ func init() {
 		Dial:                  HardCachedHostDial,
 	}
 
-	originServer = StartServer(*originPort)
-	backupServer1 = StartServer(*backupPort1)
-	backupServer2 = StartServer(*backupPort2)
-
 	log.Println("Confirming that CDN is healthy")
-	err := confirmEdgeIsHealthy(originServer, *edgeHost)
+	err := StartBackendsInOrder(*edgeHost)
 	if err != nil {
 		log.Fatal(err)
 	}

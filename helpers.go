@@ -43,6 +43,7 @@ func StartServer(port int) *CDNServeMux {
 		}
 	}()
 
+	log.Printf("Started server on port %d", port)
 	return mux
 }
 
@@ -58,20 +59,65 @@ func NewUUID() string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", bs[0:4], bs[4:6], bs[6:8], bs[8:10], bs[10:])
 }
 
-// Confirm that the edge (CDN) is working correctly. This may take some time
-// because our CDNServeMux needs to receive and respond to enough probe
-// health checks to be considered up.
-func confirmEdgeIsHealthy(mux *CDNServeMux, edgeHost string) error {
-	const maxRetries = 20
-	const timeBetweenAttempts = time.Duration(2 * time.Second)
-	const waitForCdnProbeToPropagate = time.Duration(5 * time.Second)
+// Confirm that the edge (CDN) is working correctly with respect to its perception
+// of the state of its backend nodes. This may take some time because our CDNServeMux
+// needs to receive and respond to enough probe health checks to be considered up.
+//
+// We assume that all backends are stopped, so that we can start them in order.
+//
+func StartBackendsInOrder(edgeHost string) (err error) {
 
-	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2 = StartServer(*backupPort2)
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Backend-Marker", "backupServer2")
 		w.WriteHeader(200)
 	})
+	err = waitForBackend(edgeHost, "backupServer2")
+	if err != nil {
+		return
+	}
+
+	backupServer1 = StartServer(*backupPort1)
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Backend-Marker", "backupServer1")
+		w.WriteHeader(200)
+	})
+	err = waitForBackend(edgeHost, "backupServer1")
+	if err != nil {
+		return
+	}
+
+	originServer = StartServer(*originPort)
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Backend-Marker", "originServer")
+		w.WriteHeader(200)
+	})
+	err = waitForBackend(edgeHost, "originServer")
+	if err != nil {
+		return
+	}
+
+	// All is well
+	return nil
+
+}
+
+// Wait for the backend to return with the header we expect. This is designed to
+// confirm that requests are hitting this specific backend, rather than a lower-level
+// backend that this overrides (for example, origin over a mirror)
+//
+func waitForBackend(
+	edgeHost string,
+	expectedBackendMarker string,
+) error {
+
+	const maxRetries = 20
+	const waitForCdnProbeToPropagate = time.Duration(5 * time.Second)
+	const timeBetweenAttempts = time.Duration(2 * time.Second)
 
 	var sourceUrl string
 
+	log.Printf("Checking health of %s...", expectedBackendMarker)
 	for try := 0; try <= maxRetries; try++ {
 		uuid := NewUUID()
 		sourceUrl = fmt.Sprintf("https://%s/?cacheBuster=%s", edgeHost, uuid)
@@ -80,15 +126,22 @@ func confirmEdgeIsHealthy(mux *CDNServeMux, edgeHost string) error {
 		if err != nil {
 			return err
 		}
-		if resp.StatusCode == 200 {
+		if resp.Header.Get("Backend-Marker") == expectedBackendMarker {
 			if try != 0 {
 				time.Sleep(waitForCdnProbeToPropagate)
 			}
+			log.Println(expectedBackendMarker + " is up!")
 			return nil // all is well!
 		}
 		time.Sleep(timeBetweenAttempts)
 	}
-	return fmt.Errorf("CDN still not available after %d attempts", maxRetries)
+
+	return fmt.Errorf(
+		"%s still not available after %d attempts",
+		expectedBackendMarker,
+		maxRetries,
+	)
+
 }
 
 // Callback function to modify response headers.
