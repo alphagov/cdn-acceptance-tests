@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -13,9 +14,10 @@ import (
 // HTTP ServeMux with an updateable handler so that tests can pass their own
 // anonymous functions in to handle requests.
 type CDNServeMux struct {
-	Name    string
-	Port    int
-	handler func(w http.ResponseWriter, r *http.Request)
+	Name     string
+	Port     int
+	Listener net.Listener
+	handler  func(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *CDNServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -34,11 +36,11 @@ func (s *CDNServeMux) SwitchHandler(h func(w http.ResponseWriter, r *http.Reques
 // Start a new server and return the CDNServeMux used.
 func StartServer(name string, port int) *CDNServeMux {
 	handler := func(w http.ResponseWriter, r *http.Request) {}
-	mux := &CDNServeMux{name, port, handler}
+	mux := &CDNServeMux{name, port, nil, handler}
 	addr := fmt.Sprintf(":%d", port)
 
 	go func() {
-		err := http.ListenAndServe(addr, mux)
+		err := StoppableHttpListenAndServe(addr, mux)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -46,6 +48,24 @@ func StartServer(name string, port int) *CDNServeMux {
 
 	log.Printf("Started server on port %d", port)
 	return mux
+}
+
+func StopServer(mux *CDNServeMux) {
+	err := mux.Listener.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func StoppableHttpListenAndServe(addr string, mux *CDNServeMux) error {
+	server := &http.Server{Addr: addr, Handler: mux}
+	l, e := net.Listen("tcp", addr)
+	if e != nil {
+		log.Fatal(e)
+	}
+	mux.Listener = l
+	server.Serve(mux.Listener)
+	return nil
 }
 
 // Return a v4 (random) UUID string.
