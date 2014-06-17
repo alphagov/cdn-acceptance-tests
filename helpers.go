@@ -144,6 +144,99 @@ func waitForBackend(
 
 }
 
+// Callback function to modify complete response.
+type responseCallback func(w http.ResponseWriter)
+
+// Wrapper for testRequestsCachedDuration() with a respTTL of zero.
+// Meaning that the cached object doesn't expire.
+func testRequestsCachedIndefinite(t *testing.T, respCB responseCallback) {
+	testRequestsCachedDuration(t, respCB, time.Duration(0))
+}
+
+// Helper function to make three requests and test responses. If respTTL is:
+//
+//	- zero: no delay between requests, origin should only see one request,
+//		and all response bodies should be identical (from cache).
+//	- non-zero: first and second request without delay, origin should only
+//		see one request and responses bodies should be identical, then after a
+//		delay of respTTL + a buffer a third response should get a new response
+//		directly from origin.
+//
+// A responseCallback, if not nil, will be called to modify the response
+// before calling Write(body).
+func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL time.Duration) {
+	const responseCached = "first response"
+	const responseNotCached = "subsequent response"
+	var testCacheExpiry bool = respTTL > 0
+	var respTTLWithBuffer time.Duration = respTTL + (respTTL / 4)
+	var requestsExpectedCount int
+
+	requestsReceivedCount := 0
+	switch testCacheExpiry {
+	case true:
+		requestsExpectedCount = 2
+	case false:
+		requestsExpectedCount = 1
+	}
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		if respCB != nil {
+			respCB(w)
+		}
+
+		if requestsReceivedCount == 0 {
+			w.Write([]byte(responseCached))
+		} else {
+			w.Write([]byte(responseNotCached))
+		}
+
+		requestsReceivedCount++
+	})
+
+	for requestCount := 0; requestCount < 3; requestCount++ {
+		if testCacheExpiry && requestCount == 2 {
+			time.Sleep(respTTLWithBuffer)
+		}
+
+		resp, err := client.RoundTrip(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var expectedBody string
+		if testCacheExpiry && requestCount > 1 {
+			expectedBody = responseNotCached
+		} else {
+			expectedBody = responseCached
+		}
+
+		if receivedBody := string(body); receivedBody != expectedBody {
+			t.Errorf(
+				"Incorrect response body. Expected %q, got %q",
+				expectedBody,
+				receivedBody,
+			)
+		}
+	}
+
+	if requestsReceivedCount != requestsExpectedCount {
+		t.Errorf(
+			"Origin received the wrong number of requests. Expected %d, got %d",
+			requestsExpectedCount,
+			requestsReceivedCount,
+		)
+	}
+}
+
 // Callback function to modify response headers.
 type responseHeaderCallback func(h http.Header)
 

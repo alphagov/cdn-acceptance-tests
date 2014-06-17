@@ -2,53 +2,79 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 )
 
-// Should cache first response and return it on second request without
-// hitting origin again.
+// Should cache first response for an unspecified period of time if when it
+// doesn't specify it's own cache headers. Subsequent requests should return
+// a cached response.
 func TestCacheFirstResponse(t *testing.T) {
-	const bodyExpected = "first request"
-	const requestsExpectedCount = 1
-	requestsReceivedCount := 0
-
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		if requestsReceivedCount == 0 {
-			w.Write([]byte(bodyExpected))
-		} else {
-			w.Write([]byte("subsequent request"))
-		}
-
-		requestsReceivedCount++
-	})
-
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
-
-	for i := 0; i < 2; i++ {
-		resp, err := client.RoundTrip(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(body) != bodyExpected {
-			t.Errorf("Incorrect response body. Expected %q, got %q", bodyExpected, body)
-		}
-	}
-
-	if requestsReceivedCount > requestsExpectedCount {
-		t.Errorf("originServer got too many requests. Expected %d requests, got %d", requestsExpectedCount, requestsReceivedCount)
-	}
+	testRequestsCachedIndefinite(t, nil)
 }
 
-// Should set a default TTL if the response doesn't set one.
-func TestCacheDefaultTTL(t *testing.T) {
-	t.Error("Not implemented")
+// Should cache responses for the period defined in a `Expires: n` response
+// header.
+func TestCacheExpires(t *testing.T) {
+	const cacheDuration = time.Duration(5 * time.Second)
+
+	handler := func(w http.ResponseWriter) {
+		headerValue := time.Now().UTC().Add(cacheDuration).Format(http.TimeFormat)
+		w.Header().Set("Expires", headerValue)
+	}
+
+	testRequestsCachedDuration(t, handler, cacheDuration)
+}
+
+// Should cache responses for the period defined in a `Cache-Control:
+// max-age=n` response header.
+func TestCacheCacheControlMaxAge(t *testing.T) {
+	const cacheDuration = time.Duration(5 * time.Second)
+	headerValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
+
+	handler := func(w http.ResponseWriter) {
+		w.Header().Set("Cache-Control", headerValue)
+	}
+
+	testRequestsCachedDuration(t, handler, cacheDuration)
+}
+
+// Should cache responses for the period defined in a `Cache-Control:
+// max-age=n` response header when a `Expires: n*2` header is also present.
+func TestCacheExpiresAndMaxAge(t *testing.T) {
+	const cacheDuration = time.Duration(5 * time.Second)
+	const expiresDuration = cacheDuration * 2
+
+	maxAgeValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
+
+	handler := func(w http.ResponseWriter) {
+		expiresValue := time.Now().UTC().Add(expiresDuration).Format(http.TimeFormat)
+
+		w.Header().Set("Expires", expiresValue)
+		w.Header().Set("Cache-Control", maxAgeValue)
+	}
+
+	testRequestsCachedDuration(t, handler, cacheDuration)
+}
+
+// Should cache responses with a `Cache-Control: no-cache` header. Varnish
+// doesn't respect this by default.
+func TestCacheCacheControlNoCache(t *testing.T) {
+	handler := func(w http.ResponseWriter) {
+		w.Header().Set("Cache-Control", "no-cache")
+	}
+
+	testRequestsCachedIndefinite(t, handler)
+}
+
+// Should cache responses with a status code of 404. It's a common
+// misconception that 404 responses shouldn't be cached; they should because
+// they can be expensive to generate.
+func TestCache404Response(t *testing.T) {
+	handler := func(w http.ResponseWriter) {
+		w.WriteHeader(http.StatusNotFound)
+	}
+
+	testRequestsCachedIndefinite(t, handler)
 }
