@@ -13,6 +13,7 @@ import (
 // HTTP ServeMux with an updateable handler so that tests can pass their own
 // anonymous functions in to handle requests.
 type CDNServeMux struct {
+	Name    string
 	Port    int
 	handler func(w http.ResponseWriter, r *http.Request)
 }
@@ -31,9 +32,9 @@ func (s *CDNServeMux) SwitchHandler(h func(w http.ResponseWriter, r *http.Reques
 }
 
 // Start a new server and return the CDNServeMux used.
-func StartServer(port int) *CDNServeMux {
+func StartServer(name string, port int) *CDNServeMux {
 	handler := func(w http.ResponseWriter, r *http.Request) {}
-	mux := &CDNServeMux{port, handler}
+	mux := &CDNServeMux{name, port, handler}
 	addr := fmt.Sprintf(":%d", port)
 
 	go func() {
@@ -67,32 +68,32 @@ func NewUUID() string {
 //
 func StartBackendsInOrder(edgeHost string) (err error) {
 
-	backupServer2 = StartServer(*backupPort2)
+	backupServer2 = StartServer("backup2", *backupPort2)
 	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Backend-Marker", "backupServer2")
+		w.Header().Set("Backend-Marker", backupServer2.Name)
 		w.WriteHeader(200)
 	})
-	err = waitForBackend(edgeHost, "backupServer2")
+	err = waitForBackend(edgeHost, backupServer2.Name)
 	if err != nil {
 		return
 	}
 
-	backupServer1 = StartServer(*backupPort1)
+	backupServer1 = StartServer("backup1", *backupPort1)
 	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Backend-Marker", "backupServer1")
+		w.Header().Set("Backend-Marker", backupServer1.Name)
 		w.WriteHeader(200)
 	})
-	err = waitForBackend(edgeHost, "backupServer1")
+	err = waitForBackend(edgeHost, backupServer1.Name)
 	if err != nil {
 		return
 	}
 
-	originServer = StartServer(*originPort)
+	originServer = StartServer("origin", *originPort)
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Backend-Marker", "originServer")
+		w.Header().Set("Backend-Marker", originServer.Name)
 		w.WriteHeader(200)
 	})
-	err = waitForBackend(edgeHost, "originServer")
+	err = waitForBackend(edgeHost, originServer.Name)
 	if err != nil {
 		return
 	}
