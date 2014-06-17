@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 )
 
 // Should serve a known static error page if all backend servers are down
@@ -38,7 +39,73 @@ func TestFailoverOriginDownServeStale(t *testing.T) {
 // Should serve stale object and not hit mirror(s) if origin returns a 5xx
 // response and object is beyond TTL but still in cache.
 func TestFailoverOrigin5xxServeStale(t *testing.T) {
-	t.Error("Not implemented")
+	const cacheDuration = time.Duration(2 * time.Second)
+	const waitDuration = time.Duration(10 * time.Second)
+	const expectedResponseStale = "going off like stilton"
+	const expectedResponseFresh = "as fresh as daisies"
+	headerValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
+
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer1.Name
+		t.Errorf("Server %s received request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer2.Name
+		t.Errorf("Server %s received request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+
+	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
+	req, _ := http.NewRequest("GET", url, nil)
+
+	for requestCount := 0; requestCount < 3; requestCount++ {
+		var expectedBody string
+
+		switch requestCount {
+		case 0:
+			expectedBody = expectedResponseStale
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", headerValue)
+				w.Write([]byte(expectedBody))
+			})
+		case 1:
+			// Wait beyond object TTL.
+			time.Sleep(waitDuration)
+
+			expectedBody = expectedResponseStale
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				w.Write([]byte(originServer.Name))
+			})
+		case 2:
+			// Wait for saintmode to expire.
+			time.Sleep(waitDuration)
+
+			expectedBody = expectedResponseFresh
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte(expectedBody))
+			})
+		}
+
+		resp, err := client.RoundTrip(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bodyStr := string(body); bodyStr != expectedBody {
+			t.Errorf(
+				"Received incorrect response body. Expected %q, got %q",
+				expectedBody,
+				bodyStr,
+			)
+		}
+	}
 }
 
 // Should fallback to first mirror if origin is down and object is not in
