@@ -125,21 +125,6 @@ sub vcl_deliver {
 
 }
 
-sub vcl_pass {
-  // disable keep-alives
-  set bereq.http.connection = "close";
-}
-
-sub vcl_miss {
-  // disable keep-alives
-  set bereq.http.connection = "close";
-}
-
-sub vcl_pipe {
-  // disable keep-alives
-  set bereq.http.connection = "close";
-}
-
 sub vcl_error {
   # Assume we've hit vcl_error() because the backend is unavailable
   # for the first two retries. By restarting, vcl_recv() will try
