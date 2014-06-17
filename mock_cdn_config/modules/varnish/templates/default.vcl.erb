@@ -1,16 +1,43 @@
 backend default {
   .host = "<%= @ipaddress_vmhost -%>";
   .port = "8080";
+  .probe = {
+    .request = "HEAD / HTTP/1.1" "Connection: close";
+    .threshold = 1;
+    .window = 2;
+    .timeout = 5s;
+    .initial = 1;
+    .expected_response = 200;
+    .interval = 10s;
+  }
 }
 
 backend backup1 {
   .host = "<%= @ipaddress_vmhost -%>";
   .port = "8081";
+  .probe = {
+    .request = "HEAD / HTTP/1.1" "Connection: close";
+    .threshold = 1;
+    .window = 2;
+    .timeout = 5s;
+    .initial = 1;
+    .expected_response = 200;
+    .interval = 10s;
+  }
 }
 
 backend backup2 {
   .host = "<%= @ipaddress_vmhost -%>";
   .port = "8082";
+  .probe = {
+    .request = "HEAD / HTTP/1.1" "Connection: close";
+    .threshold = 1;
+    .window = 2;
+    .timeout = 5s;
+    .initial = 1;
+    .expected_response = 200;
+    .interval = 10s;
+  }
 }
 
 # Please add the minimal amount of code required to implement/mimic the
