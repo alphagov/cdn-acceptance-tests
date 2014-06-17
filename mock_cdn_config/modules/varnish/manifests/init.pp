@@ -5,16 +5,15 @@ class varnish {
   file { '/etc/varnish/default.vcl':
     ensure  => file,
     content => template('varnish/default.vcl.erb'),
-    notify  => Exec['varnish-reload'],
+    notify  => Exec['varnish-restart'],
   } ->
   service { 'varnish':
     ensure => running,
   }
 
-  # `service varnish reload` doesn't return the right exit code!
-  exec { 'varnish-reload':
-    command     => '/usr/share/varnish/reload-vcl',
-    logoutput   => true,
+  # `service varnish restart` doesn't return the right exit code!
+  exec { 'varnish-restart':
+    command     => '/usr/sbin/service varnish stop; /usr/sbin/service varnish start',
     refreshonly => true,
   }
 }
