@@ -50,7 +50,7 @@ func StartServer(name string, port int) *CDNServeMux {
 	return mux
 }
 
-func StopServer(mux *CDNServeMux) {
+func (mux *CDNServeMux) Stop() {
 	err := mux.Listener.Close()
 	if err != nil {
 		log.Fatal(err)
