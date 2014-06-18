@@ -55,6 +55,9 @@ func StopServer(mux *CDNServeMux) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Connection", "close")
+	})
 }
 
 func StoppableHttpListenAndServe(addr string, mux *CDNServeMux) error {
