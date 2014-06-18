@@ -62,28 +62,28 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
 	req, _ := http.NewRequest("GET", url, nil)
 
-	for requestCount := 1; requestCount < 4; requestCount++ {
-		var expectedBody string
-
+	var expectedBody string
+	for requestCount := 1; requestCount < 6; requestCount++ {
 		switch requestCount {
 		case 1:
 			expectedBody = expectedResponseStale
+
 			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Cache-Control", headerValue)
 				w.Write([]byte(expectedBody))
 			})
 		case 2:
 			time.Sleep(respTTLWithBuffer)
-
 			expectedBody = expectedResponseStale
+
 			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				w.Write([]byte(originServer.Name))
 			})
-		case 3:
+		case 5:
 			time.Sleep(waitSaintMode)
-
 			expectedBody = expectedResponseFresh
+
 			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte(expectedBody))
 			})
