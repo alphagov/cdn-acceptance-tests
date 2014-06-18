@@ -59,6 +59,7 @@ func (mux *CDNServeMux) Stop() {
 		w.Header().Set("Connection", "close")
 	})
 
+	// make a request via the Edge to ensure that it receives the Connection: close
 	uuid := NewUUID()
 	sourceUrl := fmt.Sprintf("https://%s/?cacheBuster=%s", *edgeHost, uuid)
 	req, err := http.NewRequest("GET", sourceUrl, nil)
@@ -69,6 +70,16 @@ func (mux *CDNServeMux) Stop() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// make sure any local connection also receives Connection: close
+	sourceUrl = fmt.Sprintf("http://localhost:%d/?cacheBuster=%s", mux.Port, uuid)
+	req, err = http.NewRequest("GET", sourceUrl, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// do not worry about error, there is not necessarily a connection to close
+	// so generally this will result in a connection refused error.
+	_, _ = client.RoundTrip(req)
 
 }
 
