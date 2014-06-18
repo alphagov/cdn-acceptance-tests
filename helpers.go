@@ -58,6 +58,18 @@ func (mux *CDNServeMux) Stop() {
 	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Connection", "close")
 	})
+
+	uuid := NewUUID()
+	sourceUrl := fmt.Sprintf("https://%s/?cacheBuster=%s", *edgeHost, uuid)
+	req, err := http.NewRequest("GET", sourceUrl, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = client.RoundTrip(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 func StoppableHttpListenAndServe(addr string, mux *CDNServeMux) error {
