@@ -62,17 +62,17 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
 	req, _ := http.NewRequest("GET", url, nil)
 
-	for requestCount := 0; requestCount < 3; requestCount++ {
+	for requestCount := 1; requestCount < 4; requestCount++ {
 		var expectedBody string
 
 		switch requestCount {
-		case 0:
+		case 1:
 			expectedBody = expectedResponseStale
 			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Cache-Control", headerValue)
 				w.Write([]byte(expectedBody))
 			})
-		case 1:
+		case 2:
 			time.Sleep(respTTLWithBuffer)
 
 			expectedBody = expectedResponseStale
@@ -80,7 +80,7 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				w.Write([]byte(originServer.Name))
 			})
-		case 2:
+		case 3:
 			time.Sleep(waitSaintMode)
 
 			expectedBody = expectedResponseFresh
@@ -101,7 +101,8 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 		}
 		if bodyStr := string(body); bodyStr != expectedBody {
 			t.Errorf(
-				"Received incorrect response body. Expected %q, got %q",
+				"Request %d received incorrect response body. Expected %q, got %q",
+				requestCount,
 				expectedBody,
 				bodyStr,
 			)
