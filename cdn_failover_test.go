@@ -39,11 +39,14 @@ func TestFailoverOriginDownServeStale(t *testing.T) {
 // Should serve stale object and not hit mirror(s) if origin returns a 5xx
 // response and object is beyond TTL but still in cache.
 func TestFailoverOrigin5xxServeStale(t *testing.T) {
-	const cacheDuration = time.Duration(2 * time.Second)
-	const waitDuration = time.Duration(10 * time.Second)
 	const expectedResponseStale = "going off like stilton"
 	const expectedResponseFresh = "as fresh as daisies"
-	headerValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
+
+	const respTTL = time.Duration(2 * time.Second)
+	const respTTLWithBuffer = 5 * respTTL
+	// Allow varnish's beresp.saintmode to expire.
+	const waitSaintMode = time.Duration(5 * time.Second)
+	headerValue := fmt.Sprintf("max-age=%.0f", respTTL.Seconds())
 
 	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		name := backupServer1.Name
@@ -70,8 +73,7 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 				w.Write([]byte(expectedBody))
 			})
 		case 1:
-			// Wait beyond object TTL.
-			time.Sleep(waitDuration)
+			time.Sleep(respTTLWithBuffer)
 
 			expectedBody = expectedResponseStale
 			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
@@ -79,8 +81,7 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 				w.Write([]byte(originServer.Name))
 			})
 		case 2:
-			// Wait for saintmode to expire.
-			time.Sleep(waitDuration)
+			time.Sleep(waitSaintMode)
 
 			expectedBody = expectedResponseFresh
 			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
