@@ -240,7 +240,51 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 }
 
 // Should not fallback to mirror if origin returns a 5xx response with a
-// No-Fallback header.
+// No-Fallback header. In order to allow applications to present their own
+// error pages.
 func TestFailoverNoFallbackHeader(t *testing.T) {
-	t.Error("Not implemented")
+	const headerName = "No-Fallback"
+	const expectedStatus = http.StatusServiceUnavailable
+	const expectedBody = "custom error page"
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(headerName, "")
+		w.WriteHeader(expectedStatus)
+		w.Write([]byte(expectedBody))
+	})
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer1.Name
+		t.Errorf("Server %s received request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer2.Name
+		t.Errorf("Server %s received request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
+
+	if resp.StatusCode != expectedStatus {
+		t.Errorf(
+			"Received incorrect status code. Expected %d, got %d",
+			expectedStatus,
+			resp.StatusCode,
+		)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if bodyStr := string(body); bodyStr != expectedBody {
+		t.Errorf(
+			"Received incorrect response body. Expected %q, got %q",
+			expectedBody,
+			bodyStr,
+		)
+	}
 }
