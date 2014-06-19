@@ -56,6 +56,7 @@ func (mux *CDNServeMux) Stop() {
 		log.Fatal(err)
 	}
 	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Backend-Marker", mux.Name)
 		w.Header().Set("Connection", "close")
 	})
 
@@ -66,9 +67,15 @@ func (mux *CDNServeMux) Stop() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = client.RoundTrip(req)
+	resp, err := client.RoundTrip(req)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if resp.Header.Get("Backend-Marker") != mux.Name {
+		log.Fatal(
+			"Stop request was not received at %s. Higher-level servers must be stopped first.",
+			mux.Name,
+		)
 	}
 
 	// make sure any local connection also receives Connection: close
