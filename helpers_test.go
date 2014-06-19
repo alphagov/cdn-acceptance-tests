@@ -13,11 +13,8 @@ func TestHelpersCDNServeMuxHandlers(t *testing.T) {
 
 	url := fmt.Sprintf("http://localhost:%d/foo", originServer.Port)
 	req, _ := http.NewRequest("GET", url, nil)
+	resp := RoundTripCheckError(t, req)
 
-	resp, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
 	if resp.StatusCode != 200 {
 		t.Error("First request to default handler failed")
 	}
@@ -27,10 +24,7 @@ func TestHelpersCDNServeMuxHandlers(t *testing.T) {
 			w.WriteHeader(statusCode)
 		})
 
-		resp, err := client.RoundTrip(req)
-		if err != nil {
-			t.Fatal(err)
-		}
+		resp := RoundTripCheckError(t, req)
 		if resp.StatusCode != statusCode {
 			t.Errorf("SwitchHandler didn't work. Got %d, expected %d", resp.StatusCode, statusCode)
 		}
@@ -46,11 +40,7 @@ func TestHelpersCDNServeMuxProbes(t *testing.T) {
 
 	url := fmt.Sprintf("http://localhost:%d/", originServer.Port)
 	req, _ := http.NewRequest("HEAD", url, nil)
-
-	resp, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp := RoundTripCheckError(t, req)
 
 	if resp.StatusCode != 200 || resp.Header.Get("PING") != "PONG" {
 		t.Error("HEAD request for '/' served incorrectly")

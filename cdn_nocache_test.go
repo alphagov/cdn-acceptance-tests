@@ -18,11 +18,8 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
 
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
-	resp, err := client.RoundTrip(req)
+	resp := RoundTripCheckError(t, req)
 
-	if err != nil {
-		t.Fatal(err)
-	}
 	if resp.StatusCode != 200 {
 		t.Errorf("Status code expected 200, got %d", resp.StatusCode)
 	}
@@ -33,16 +30,15 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 
 // Should not cache the response to a POST request.
 func TestNoCachePOST(t *testing.T) {
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("POST", url, nil)
+	req := NewUniqueEdgeGET(t)
+	req.Method = "POST"
 
 	testThreeRequestsNotCached(t, req, nil)
 }
 
 // Should not cache the response to a request with a `Authorization` header.
 func TestNoCacheHeaderAuthorization(t *testing.T) {
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
+	req := NewUniqueEdgeGET(t)
 	req.Header.Set("Authorization", "Basic YXJlbnR5b3U6aW5xdWlzaXRpdmU=")
 
 	testThreeRequestsNotCached(t, req, nil)
@@ -50,8 +46,7 @@ func TestNoCacheHeaderAuthorization(t *testing.T) {
 
 // Should not cache the response to a request with a `Cookie` header.
 func TestNoCacheHeaderCookie(t *testing.T) {
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
+	req := NewUniqueEdgeGET(t)
 	req.Header.Set("Cookie", "sekret=mekmitasdigoat")
 
 	testThreeRequestsNotCached(t, req, nil)
@@ -63,9 +58,7 @@ func TestNoCacheHeaderSetCookie(t *testing.T) {
 		h.Set("Set-Cookie", "sekret=mekmitasdigoat")
 	}
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
-
+	req := NewUniqueEdgeGET(t)
 	testThreeRequestsNotCached(t, req, handler)
 }
 
@@ -75,8 +68,6 @@ func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
 		h.Set("Cache-Control", "private")
 	}
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
-
+	req := NewUniqueEdgeGET(t)
 	testThreeRequestsNotCached(t, req, handler)
 }

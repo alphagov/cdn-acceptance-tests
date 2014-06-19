@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -58,6 +59,46 @@ func NewUUID() string {
 	bs[8] = (bs[8] & 0x3f) | 0x80
 
 	return fmt.Sprintf("%x-%x-%x-%x-%x", bs[0:4], bs[4:6], bs[6:8], bs[8:10], bs[10:])
+}
+
+// Construct a new URL for edge. Always uses HTTPS. A random UUID is used in
+// the path to ensure that it hasn't previously been cached. It is passed as
+// a query param for / so that some of the tests can be run against a
+// service that hasn't been configured to point at our test backends.
+func NewUniqueEdgeURL() string {
+	url := url.URL{
+		Scheme: "https",
+		Host:   *edgeHost,
+		Path:   fmt.Sprintf("/?nocache=%s", NewUUID()),
+	}
+
+	return url.String()
+}
+
+// Construct a GET request (but not perform it) against edge. Uses
+// NewUniqueEdgeURL() to ensure that it hasn't previously been cached. The
+// request method field of the returned object can be later modified if
+// required.
+func NewUniqueEdgeGET(t *testing.T) *http.Request {
+	url := NewUniqueEdgeURL()
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return req
+}
+
+// Make an HTTP request using http.RoundTrip, which doesn't handle redirects
+// or cookies, and return the response. If there are any errors then the
+// calling test will be aborted so as not to operate on a nil response.
+func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return resp
 }
 
 // Confirm that the edge (CDN) is working correctly with respect to its perception
@@ -202,10 +243,7 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 			time.Sleep(respTTLWithBuffer)
 		}
 
-		resp, err := client.RoundTrip(req)
-		if err != nil {
-			t.Fatal(err)
-		}
+		resp := RoundTripCheckError(t, req)
 
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
@@ -261,11 +299,7 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 	})
 
 	for _, expectedBody := range responseBodies {
-		resp, err := client.RoundTrip(req)
-
-		if err != nil {
-			t.Fatal(err)
-		}
+		resp := RoundTripCheckError(t, req)
 
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)

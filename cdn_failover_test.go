@@ -59,8 +59,7 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 		w.Write([]byte(name))
 	})
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
+	req := NewUniqueEdgeGET(t)
 
 	var expectedBody string
 	for requestCount := 1; requestCount < 6; requestCount++ {
@@ -89,10 +88,7 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 			})
 		}
 
-		resp, err := client.RoundTrip(req)
-		if err != nil {
-			t.Fatal(err)
-		}
+		resp := RoundTripCheckError(t, req)
 
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
@@ -149,13 +145,9 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 		w.Write([]byte(name))
 	})
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
-	resp, err := client.RoundTrip(req)
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
 
-	if err != nil {
-		t.Fatal(err)
-	}
 	if resp.StatusCode != expectedStatus {
 		t.Errorf(
 			"Received incorrect status code. Expected %d, got %d",
@@ -222,13 +214,9 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 		}
 	})
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
-	resp, err := client.RoundTrip(req)
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
 
-	if err != nil {
-		t.Fatal(err)
-	}
 	if resp.StatusCode != expectedStatus {
 		t.Errorf(
 			"Received incorrect status code. Expected %d, got %d",
