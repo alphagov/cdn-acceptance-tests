@@ -59,8 +59,7 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 		w.Write([]byte(name))
 	})
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
+	req := NewUniqueEdgeGET(t)
 
 	var expectedBody string
 	for requestCount := 1; requestCount < 6; requestCount++ {
@@ -146,8 +145,7 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 		w.Write([]byte(name))
 	})
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
+	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
 
 	if resp.StatusCode != expectedStatus {
@@ -216,8 +214,7 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 		}
 	})
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
+	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
 
 	if resp.StatusCode != expectedStatus {

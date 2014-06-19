@@ -39,8 +39,8 @@ func TestRestrictPurgeRequests(t *testing.T) {
 		t.Error("Request should not have made it to origin")
 	})
 
-	url := fmt.Sprintf("https://%s/", *edgeHost)
-	req, _ := http.NewRequest("PURGE", url, nil)
+	req := NewUniqueEdgeGET(t)
+	req.Method = "PURGE"
 	resp := RoundTripCheckError(t, req)
 
 	if resp.StatusCode != expectedStatusCode {
@@ -61,10 +61,8 @@ func TestHeaderXFFCreateAndAppend(t *testing.T) {
 		receivedHeaderVal = r.Header.Get(headerName)
 	})
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
-
 	// First request with no existing XFF.
+	req := NewUniqueEdgeGET(t)
 	_ = RoundTripCheckError(t, req)
 
 	if receivedHeaderVal == "" {
@@ -84,8 +82,7 @@ func TestHeaderXFFCreateAndAppend(t *testing.T) {
 	expectedHeaderVal := fmt.Sprintf("%s, %s", sentHeaderVal, ourReportedIP.String())
 
 	// Second request with existing XFF.
-	url = fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ = http.NewRequest("GET", url, nil)
+	req = NewUniqueEdgeGET(t)
 	req.Header.Set(headerName, sentHeaderVal)
 	_ = RoundTripCheckError(t, req)
 
@@ -111,8 +108,7 @@ func TestHeaderUnspoofableClientIP(t *testing.T) {
 		receivedHeaderVal = r.Header.Get(headerName)
 	})
 
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
+	req := NewUniqueEdgeGET(t)
 	req.Header.Set(headerName, sentHeaderVal)
 	_ = RoundTripCheckError(t, req)
 
@@ -135,8 +131,7 @@ func TestHeaderHostUnmodified(t *testing.T) {
 		receivedHeaderVal = r.Host
 	})
 
-	url := fmt.Sprintf("https://%s/%s", sentHeaderVal, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
+	req := NewUniqueEdgeGET(t)
 
 	if req.Host != sentHeaderVal {
 		t.Errorf(
@@ -168,7 +163,6 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 	const originAgeInSeconds = 100
 	const secondsToWaitBetweenRequests = 5
 	requestReceivedCount := 0
-	uuid := NewUUID()
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		if requestReceivedCount == 0 {
@@ -181,8 +175,7 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 		requestReceivedCount++
 	})
 
-	url := fmt.Sprintf("https://%s/?cache-lock=%s", *edgeHost, uuid)
-	req, _ := http.NewRequest("GET", url, nil)
+	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
 
 	if resp.StatusCode != 200 {
@@ -228,15 +221,12 @@ func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
 		expectedXCache string
 	)
 
-	uuid := NewUUID()
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Cache", originXCache)
 	})
 
-	sourceUrl := fmt.Sprintf("https://%s/?cache-lock=%s", *edgeHost, uuid)
-
 	// Get first request, will come from origin, cannot be cached - hence cache MISS
-	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
 
 	xCache = resp.Header.Get("X-Cache")
@@ -260,13 +250,10 @@ func TestXCacheHeaderContainsMissOnlyIfOriginDoesNotSetXCache(t *testing.T) {
 		xCache string
 	)
 
-	uuid := NewUUID()
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
 
-	sourceUrl := fmt.Sprintf("https://%s/?cache-lock=%s", *edgeHost, uuid)
-
 	// Get first request, will come from origin, cannot be cached - hence cache MISS
-	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
 
 	xCache = resp.Header.Get("X-Cache")
@@ -287,9 +274,7 @@ func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
 
-	sourceUrl := fmt.Sprintf("https://%s/", *edgeHost)
-
-	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
 
 	actualHeader := resp.Header.Get("X-Served-By")

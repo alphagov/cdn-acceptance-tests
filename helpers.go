@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -58,6 +59,34 @@ func NewUUID() string {
 	bs[8] = (bs[8] & 0x3f) | 0x80
 
 	return fmt.Sprintf("%x-%x-%x-%x-%x", bs[0:4], bs[4:6], bs[6:8], bs[8:10], bs[10:])
+}
+
+// Construct a new URL for edge. Always uses HTTPS. A random UUID is used in
+// the path to ensure that it hasn't previously been cached. It is passed as
+// a query param for / so that some of the tests can be run against a
+// service that hasn't been configured to point at our test backends.
+func NewUniqueEdgeURL() string {
+	url := url.URL{
+		Scheme: "https",
+		Host:   *edgeHost,
+		Path:   fmt.Sprintf("/?nocache=%s", NewUUID()),
+	}
+
+	return url.String()
+}
+
+// Construct a GET request (but not perform it) against edge. Uses
+// NewUniqueEdgeURL() to ensure that it hasn't previously been cached. The
+// request method field of the returned object can be later modified if
+// required.
+func NewUniqueEdgeGET(t *testing.T) *http.Request {
+	url := NewUniqueEdgeURL()
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return req
 }
 
 // Make an HTTP request using http.RoundTrip, which doesn't handle redirects
