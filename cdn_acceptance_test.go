@@ -20,11 +20,8 @@ func TestProtocolRedirect(t *testing.T) {
 	destUrl := fmt.Sprintf("https://%s/foo/bar", *edgeHost)
 
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
-	resp, err := client.RoundTrip(req)
+	resp := RoundTripCheckError(t, req)
 
-	if err != nil {
-		t.Fatal(err)
-	}
 	if resp.StatusCode != 301 {
 		t.Errorf("Status code expected 301, got %d", resp.StatusCode)
 	}
@@ -44,11 +41,8 @@ func TestRestrictPurgeRequests(t *testing.T) {
 
 	url := fmt.Sprintf("https://%s/", *edgeHost)
 	req, _ := http.NewRequest("PURGE", url, nil)
+	resp := RoundTripCheckError(t, req)
 
-	resp, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
 	if resp.StatusCode != expectedStatusCode {
 		t.Errorf("Incorrect status code. Expected %d, got %d", expectedStatusCode, resp.StatusCode)
 	}
@@ -71,10 +65,8 @@ func TestHeaderXFFCreateAndAppend(t *testing.T) {
 	req, _ := http.NewRequest("GET", url, nil)
 
 	// First request with no existing XFF.
-	_, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_ = RoundTripCheckError(t, req)
+
 	if receivedHeaderVal == "" {
 		t.Fatalf("Origin didn't receive request with %q header", headerName)
 	}
@@ -95,11 +87,7 @@ func TestHeaderXFFCreateAndAppend(t *testing.T) {
 	url = fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
 	req, _ = http.NewRequest("GET", url, nil)
 	req.Header.Set(headerName, sentHeaderVal)
-
-	_, err = client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_ = RoundTripCheckError(t, req)
 
 	if receivedHeaderVal != expectedHeaderVal {
 		t.Errorf(
@@ -126,11 +114,7 @@ func TestHeaderUnspoofableClientIP(t *testing.T) {
 	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set(headerName, sentHeaderVal)
-
-	_, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_ = RoundTripCheckError(t, req)
 
 	receivedHeaderIP := net.ParseIP(receivedHeaderVal)
 	if receivedHeaderIP == nil {
@@ -163,10 +147,7 @@ func TestHeaderHostUnmodified(t *testing.T) {
 		)
 	}
 
-	_, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_ = RoundTripCheckError(t, req)
 
 	if receivedHeaderVal != sentHeaderVal {
 		t.Errorf(
@@ -202,11 +183,7 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 
 	url := fmt.Sprintf("https://%s/?cache-lock=%s", *edgeHost, uuid)
 	req, _ := http.NewRequest("GET", url, nil)
-
-	resp, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp := RoundTripCheckError(t, req)
 
 	if resp.StatusCode != 200 {
 		t.Fatalf("Edge returned an unexpected status: %q", resp.Status)
@@ -214,11 +191,7 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 
 	// wait a little bit. Edge should update the Age header, we know Origin will not
 	time.Sleep(time.Duration(secondsToWaitBetweenRequests) * time.Second)
-
-	resp, err = client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp = RoundTripCheckError(t, req)
 
 	if resp.StatusCode != 200 {
 		t.Fatal("Edge returned an unexpected status: %q", resp.Status)
@@ -264,10 +237,7 @@ func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
 
 	// Get first request, will come from origin, cannot be cached - hence cache MISS
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
-	resp, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp := RoundTripCheckError(t, req)
 
 	xCache = resp.Header.Get("X-Cache")
 	expectedXCache = fmt.Sprintf("%s, MISS", originXCache)
@@ -297,10 +267,7 @@ func TestXCacheHeaderContainsMissOnlyIfOriginDoesNotSetXCache(t *testing.T) {
 
 	// Get first request, will come from origin, cannot be cached - hence cache MISS
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
-	resp, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp := RoundTripCheckError(t, req)
 
 	xCache = resp.Header.Get("X-Cache")
 	if xCache != expectedXCache {
@@ -323,10 +290,7 @@ func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
 	sourceUrl := fmt.Sprintf("https://%s/", *edgeHost)
 
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
-	resp, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp := RoundTripCheckError(t, req)
 
 	actualHeader := resp.Header.Get("X-Served-By")
 	if actualHeader == "" {
@@ -362,10 +326,7 @@ func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
 
 	// Get first request, will come from origin. Edge Hit Count 0
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
-	resp, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp := RoundTripCheckError(t, req)
 
 	xCacheHits = resp.Header.Get("X-Cache-Hits")
 	expectedXCacheHits = fmt.Sprintf("%s, 0", originXCacheHits)
@@ -378,10 +339,7 @@ func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
 	}
 
 	// Get request again. Should come from Edge now, hit count 1
-	resp, err = client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	resp = RoundTripCheckError(t, req)
 
 	xCacheHits = resp.Header.Get("X-Cache-Hits")
 	expectedXCacheHits = fmt.Sprintf("%s, 1", originXCacheHits)

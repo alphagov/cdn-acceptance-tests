@@ -18,11 +18,8 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
 
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
-	resp, err := client.RoundTrip(req)
+	resp := RoundTripCheckError(t, req)
 
-	if err != nil {
-		t.Fatal(err)
-	}
 	if resp.StatusCode != 200 {
 		t.Errorf("Status code expected 200, got %d", resp.StatusCode)
 	}

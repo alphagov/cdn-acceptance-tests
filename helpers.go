@@ -60,6 +60,18 @@ func NewUUID() string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", bs[0:4], bs[4:6], bs[6:8], bs[8:10], bs[10:])
 }
 
+// Make an HTTP request using http.RoundTrip, which doesn't handle redirects
+// or cookies, and return the response. If there are any errors then the
+// calling test will be aborted so as not to operate on a nil response.
+func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return resp
+}
+
 // Confirm that the edge (CDN) is working correctly with respect to its perception
 // of the state of its backend nodes. This may take some time because our CDNServeMux
 // needs to receive and respond to enough probe health checks to be considered up.
@@ -202,10 +214,7 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 			time.Sleep(respTTLWithBuffer)
 		}
 
-		resp, err := client.RoundTrip(req)
-		if err != nil {
-			t.Fatal(err)
-		}
+		resp := RoundTripCheckError(t, req)
 
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
@@ -261,11 +270,7 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 	})
 
 	for _, expectedBody := range responseBodies {
-		resp, err := client.RoundTrip(req)
-
-		if err != nil {
-			t.Fatal(err)
-		}
+		resp := RoundTripCheckError(t, req)
 
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
