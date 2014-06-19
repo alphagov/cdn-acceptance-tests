@@ -65,14 +65,14 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 	var expectedBody string
 	for requestCount := 1; requestCount < 6; requestCount++ {
 		switch requestCount {
-		case 1:
+		case 1: // Request 1 populates cache.
 			expectedBody = expectedResponseStale
 
 			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Cache-Control", headerValue)
 				w.Write([]byte(expectedBody))
 			})
-		case 2:
+		case 2: // Requests 2,3,4 come from stale.
 			time.Sleep(respTTLWithBuffer)
 			expectedBody = expectedResponseStale
 
@@ -80,7 +80,7 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				w.Write([]byte(originServer.Name))
 			})
-		case 5:
+		case 5: // Last request comes directly from origin again.
 			time.Sleep(waitSaintMode)
 			expectedBody = expectedResponseFresh
 
