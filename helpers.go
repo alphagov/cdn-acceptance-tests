@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -13,9 +14,10 @@ import (
 // HTTP ServeMux with an updateable handler so that tests can pass their own
 // anonymous functions in to handle requests.
 type CDNServeMux struct {
-	Name    string
-	Port    int
-	handler func(w http.ResponseWriter, r *http.Request)
+	Name     string
+	Port     int
+	Listener net.Listener
+	handler  func(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *CDNServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -34,11 +36,11 @@ func (s *CDNServeMux) SwitchHandler(h func(w http.ResponseWriter, r *http.Reques
 // Start a new server and return the CDNServeMux used.
 func StartServer(name string, port int) *CDNServeMux {
 	handler := func(w http.ResponseWriter, r *http.Request) {}
-	mux := &CDNServeMux{name, port, handler}
+	mux := &CDNServeMux{name, port, nil, handler}
 	addr := fmt.Sprintf(":%d", port)
 
 	go func() {
-		err := http.ListenAndServe(addr, mux)
+		err := StoppableHttpListenAndServe(addr, mux)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -46,6 +48,57 @@ func StartServer(name string, port int) *CDNServeMux {
 
 	log.Printf("Started server on port %d", port)
 	return mux
+}
+
+func (mux *CDNServeMux) Stop() {
+	err := mux.Listener.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	mux.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Backend-Marker", mux.Name)
+		w.Header().Set("Connection", "close")
+	})
+
+	// make a request via the Edge to ensure that it receives the Connection: close
+	uuid := NewUUID()
+	sourceUrl := fmt.Sprintf("https://%s/?cacheBuster=%s", *edgeHost, uuid)
+	req, err := http.NewRequest("GET", sourceUrl, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if resp.Header.Get("Backend-Marker") != mux.Name {
+		log.Fatal(
+			"Stop request was not received at %s. Higher-level servers must be stopped first.",
+			mux.Name,
+		)
+	}
+
+	// make sure any local connection also receives Connection: close
+	sourceUrl = fmt.Sprintf("http://localhost:%d/?cacheBuster=%s", mux.Port, uuid)
+	req, err = http.NewRequest("GET", sourceUrl, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// do not worry about error, there is not necessarily a connection to close
+	// so generally this will result in a connection refused error.
+	_, _ = client.RoundTrip(req)
+
+}
+
+func StoppableHttpListenAndServe(addr string, mux *CDNServeMux) error {
+	server := &http.Server{Addr: addr, Handler: mux}
+	l, e := net.Listen("tcp", addr)
+	if e != nil {
+		log.Fatal(e)
+	}
+	mux.Listener = l
+	server.Serve(mux.Listener)
+	return nil
 }
 
 // Return a v4 (random) UUID string.

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"testing"
 )
 
@@ -55,4 +56,32 @@ func TestHelpersCDNServeMuxProbes(t *testing.T) {
 	if resp.StatusCode != 200 || resp.Header.Get("PING") != "PONG" {
 		t.Error("HEAD request for '/' served incorrectly")
 	}
+}
+
+func TestHelpersCDNServeStop(t *testing.T) {
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
+
+	url := fmt.Sprintf("http://localhost:%d/foo", originServer.Port)
+	req, _ := http.NewRequest("GET", url, nil)
+
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Error("originServer should be up and responding, prior to Stop operation")
+	}
+
+	originServer.Stop()
+
+	resp, err = client.RoundTrip(req)
+	if err == nil {
+		t.Error("Client connection succeeded. The server should be refusing requests by now.")
+	}
+
+	re := regexp.MustCompile(`connection refused`)
+	if !re.MatchString(fmt.Sprintf("%s", err)) {
+		t.Error("Connection error %q is not as expected", err)
+	}
+
 }
