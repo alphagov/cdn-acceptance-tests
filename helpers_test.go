@@ -7,9 +7,10 @@ import (
 	"testing"
 )
 
-// CDNServeMux helper should be ready to serve requests when test suite starts
-// and then serve custom handlers each with their own status code.
-func TestHelpersCDNServeMuxHandlers(t *testing.T) {
+// CDNBackendServer instance should be ready to serve requests when test
+// suite starts and then serve custom handlers each with their own status
+// code.
+func TestHelpersCDNBackendServerHandlers(t *testing.T) {
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
 
 	url := fmt.Sprintf("http://localhost:%d/foo", originServer.Port)
@@ -32,11 +33,11 @@ func TestHelpersCDNServeMuxHandlers(t *testing.T) {
 	}
 }
 
-// CDNServeMux should always respond to HEAD requests in order for the CDN to
-// determine the health of our origin.
-func TestHelpersCDNServeMuxProbes(t *testing.T) {
+// CDNBackendServer should always respond to HEAD requests in order for the
+// CDN to determine the health of our origin.
+func TestHelpersCDNBackendServerProbes(t *testing.T) {
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		t.Error("HEAD request incorrectly served by CDNServeMux.handler")
+		t.Error("HEAD request incorrectly served by CDNBackendServer.handler")
 	})
 
 	url := fmt.Sprintf("http://localhost:%d/", originServer.Port)

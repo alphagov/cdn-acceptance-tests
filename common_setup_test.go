@@ -24,9 +24,9 @@ const requestTimeout = time.Second * 5
 
 var (
 	client        *http.Transport
-	originServer  *CDNServeMux
-	backupServer1 *CDNServeMux
-	backupServer2 *CDNServeMux
+	originServer  *CDNBackendServer
+	backupServer1 *CDNBackendServer
+	backupServer2 *CDNBackendServer
 )
 
 var hardCachedEdgeHostIp string
