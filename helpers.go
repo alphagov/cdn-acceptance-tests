@@ -35,6 +35,10 @@ func (s *CDNServeMux) SwitchHandler(h func(w http.ResponseWriter, r *http.Reques
 	s.handler = h
 }
 
+func (s *CDNServeMux) Stop() {
+	s.server.Close()
+}
+
 // Start a new server and return the CDNServeMux used.
 func StartServer(name string, port int) *CDNServeMux {
 	handler := func(w http.ResponseWriter, r *http.Request) {}
@@ -62,10 +66,6 @@ func StoppableHttpListenAndServe(addr string, mux *CDNServeMux) error {
 	server.Listener = l
 	server.Start()
 	return nil
-}
-
-func (mux *CDNServeMux) Stop() {
-	mux.server.Close()
 }
 
 // Return a v4 (random) UUID string.
