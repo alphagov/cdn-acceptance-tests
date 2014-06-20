@@ -19,21 +19,14 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 	backupServer1.Stop()
 	backupServer2.Stop()
 
-	sourceUrl := fmt.Sprintf("https://%s/?cache-bust=%s", *edgeHost, NewUUID())
-	req, err := http.NewRequest("GET", sourceUrl, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	resp, err := client.RoundTrip(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
 
 	if resp.StatusCode != 503 {
 		t.Errorf("Invalid StatusCode received. Expected 503, got %d", resp.StatusCode)
 	}
 
-	err = StartBackendsInOrder(*edgeHost)
+	err := StartBackendsInOrder(*edgeHost)
 	if err != nil {
 		// Bomb out - we do not have a consistent backend, so subsequent tests
 		// would fail in unexpected ways.
