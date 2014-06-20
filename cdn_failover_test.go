@@ -13,7 +13,20 @@ import (
 // NB: ideally this should be a page that we control that has a mechanism
 //     to alert us that it has been served.
 func TestFailoverErrorPageAllServersDown(t *testing.T) {
-	t.Error("Not implemented")
+
+	originServer.Stop()
+	backupServer1.Stop()
+	backupServer2.Stop()
+
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
+
+	if resp.StatusCode != 503 {
+		t.Errorf("Invalid StatusCode received. Expected 503, got %d", resp.StatusCode)
+	}
+
+	StartBackendsInOrder(*edgeHost)
+
 }
 
 // Should serve a known static error page if all backend servers return a

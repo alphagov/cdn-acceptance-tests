@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
@@ -17,9 +19,11 @@ type CDNServeMux struct {
 	Name    string
 	Port    int
 	handler func(w http.ResponseWriter, r *http.Request)
+	server  *httptest.Server
 }
 
 func (s *CDNServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Backend-Name", s.Name)
 	if r.Method == "HEAD" && r.URL.Path == "/" {
 		w.Header().Set("PING", "PONG")
 		return
@@ -32,14 +36,18 @@ func (s *CDNServeMux) SwitchHandler(h func(w http.ResponseWriter, r *http.Reques
 	s.handler = h
 }
 
+func (s *CDNServeMux) Stop() {
+	s.server.Close()
+}
+
 // Start a new server and return the CDNServeMux used.
 func StartServer(name string, port int) *CDNServeMux {
 	handler := func(w http.ResponseWriter, r *http.Request) {}
-	mux := &CDNServeMux{name, port, handler}
+	mux := &CDNServeMux{name, port, handler, nil}
 	addr := fmt.Sprintf(":%d", port)
 
 	go func() {
-		err := http.ListenAndServe(addr, mux)
+		err := StoppableHttpListenAndServe(addr, mux)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -47,6 +55,18 @@ func StartServer(name string, port int) *CDNServeMux {
 
 	log.Printf("Started server on port %d", port)
 	return mux
+}
+
+func StoppableHttpListenAndServe(addr string, mux *CDNServeMux) error {
+	server := httptest.NewUnstartedServer(mux)
+	mux.server = server
+	l, e := net.Listen("tcp", addr)
+	if e != nil {
+		log.Fatal(e)
+	}
+	server.Listener = l
+	server.Start()
+	return nil
 }
 
 // Return a v4 (random) UUID string.
@@ -107,40 +127,25 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 //
 // We assume that all backends are stopped, so that we can start them in order.
 //
-func StartBackendsInOrder(edgeHost string) (err error) {
+func StartBackendsInOrder(edgeHost string) {
 
 	backupServer2 = StartServer("backup2", *backupPort2)
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Backend-Marker", backupServer2.Name)
-		w.WriteHeader(200)
-	})
-	err = waitForBackend(edgeHost, backupServer2.Name)
+	err := waitForBackend(edgeHost, backupServer2.Name)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 
 	backupServer1 = StartServer("backup1", *backupPort1)
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Backend-Marker", backupServer1.Name)
-		w.WriteHeader(200)
-	})
 	err = waitForBackend(edgeHost, backupServer1.Name)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 
 	originServer = StartServer("origin", *originPort)
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Backend-Marker", originServer.Name)
-		w.WriteHeader(200)
-	})
 	err = waitForBackend(edgeHost, originServer.Name)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
-
-	// All is well
-	return nil
 
 }
 
@@ -150,7 +155,7 @@ func StartBackendsInOrder(edgeHost string) (err error) {
 //
 func waitForBackend(
 	edgeHost string,
-	expectedBackendMarker string,
+	expectedBackendName string,
 ) error {
 
 	const maxRetries = 20
@@ -159,7 +164,7 @@ func waitForBackend(
 
 	var sourceUrl string
 
-	log.Printf("Checking health of %s...", expectedBackendMarker)
+	log.Printf("Checking health of %s...", expectedBackendName)
 	for try := 0; try <= maxRetries; try++ {
 		uuid := NewUUID()
 		sourceUrl = fmt.Sprintf("https://%s/?cacheBuster=%s", edgeHost, uuid)
@@ -168,11 +173,11 @@ func waitForBackend(
 		if err != nil {
 			return err
 		}
-		if resp.Header.Get("Backend-Marker") == expectedBackendMarker {
+		if resp.Header.Get("Backend-Name") == expectedBackendName {
 			if try != 0 {
 				time.Sleep(waitForCdnProbeToPropagate)
 			}
-			log.Println(expectedBackendMarker + " is up!")
+			log.Println(expectedBackendName + " is up!")
 			return nil // all is well!
 		}
 		time.Sleep(timeBetweenAttempts)
@@ -180,7 +185,7 @@ func waitForBackend(
 
 	return fmt.Errorf(
 		"%s still not available after %d attempts",
-		expectedBackendMarker,
+		expectedBackendName,
 		maxRetries,
 	)
 
