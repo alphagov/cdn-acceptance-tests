@@ -13,16 +13,18 @@ import (
 	"time"
 )
 
-// HTTP ServeMux with an updateable handler so that tests can pass their own
-// anonymous functions in to handle requests.
-type CDNServeMux struct {
+// An instance of a backend server which will receive requests from the CDN.
+// Implements the http.Handler interface with a modifiable handler so that
+// tests can pass in their own functions to inspect requests and modify
+// responses.
+type CDNBackendServer struct {
 	Name    string
 	Port    int
 	handler func(w http.ResponseWriter, r *http.Request)
 	server  *httptest.Server
 }
 
-func (s *CDNServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Backend-Name", s.Name)
 	if r.Method == "HEAD" && r.URL.Path == "/" {
 		w.Header().Set("PING", "PONG")
@@ -32,38 +34,40 @@ func (s *CDNServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler(w, r)
 }
 
-func (s *CDNServeMux) SwitchHandler(h func(w http.ResponseWriter, r *http.Request)) {
+func (s *CDNBackendServer) SwitchHandler(h func(w http.ResponseWriter, r *http.Request)) {
 	s.handler = h
 }
 
-func (s *CDNServeMux) Stop() {
+func (s *CDNBackendServer) Stop() {
 	s.server.Close()
 }
 
-// Start a new server and return the CDNServeMux used.
-func StartServer(name string, port int) *CDNServeMux {
+// Start a new server and return the CDNBackendServer used.
+func StartServer(name string, port int) *CDNBackendServer {
 	handler := func(w http.ResponseWriter, r *http.Request) {}
-	mux := &CDNServeMux{name, port, handler, nil}
+	backend := &CDNBackendServer{name, port, handler, nil}
 	addr := fmt.Sprintf(":%d", port)
 
 	go func() {
-		err := StoppableHttpListenAndServe(addr, mux)
+		err := StoppableHttpListenAndServe(addr, backend)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
 
 	log.Printf("Started server on port %d", port)
-	return mux
+	return backend
 }
 
-func StoppableHttpListenAndServe(addr string, mux *CDNServeMux) error {
-	server := httptest.NewUnstartedServer(mux)
-	mux.server = server
+func StoppableHttpListenAndServe(addr string, backend *CDNBackendServer) error {
+	server := httptest.NewUnstartedServer(backend)
+	backend.server = server
+
 	l, e := net.Listen("tcp", addr)
 	if e != nil {
 		log.Fatal(e)
 	}
+
 	server.Listener = l
 	server.Start()
 	return nil
@@ -121,9 +125,10 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 	return resp
 }
 
-// Confirm that the edge (CDN) is working correctly with respect to its perception
-// of the state of its backend nodes. This may take some time because our CDNServeMux
-// needs to receive and respond to enough probe health checks to be considered up.
+// Confirm that the edge (CDN) is working correctly with respect to its
+// perception of the state of its backend nodes. This may take some time
+// because our CDNBackendServer needs to receive and respond to enough probe
+// health checks to be considered up.
 //
 // We assume that all backends are stopped, so that we can start them in order.
 //
