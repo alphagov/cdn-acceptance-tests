@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -13,6 +14,8 @@ import (
 // NB: ideally this should be a page that we control that has a mechanism
 //     to alert us that it has been served.
 func TestFailoverErrorPageAllServersDown(t *testing.T) {
+	const expectedStatusCode = http.StatusServiceUnavailable
+	const expectedBody = "Guru Meditation"
 
 	originServer.Stop()
 	backupServer1.Stop()
@@ -21,12 +24,29 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
 
-	if resp.StatusCode != 503 {
-		t.Errorf("Invalid StatusCode received. Expected 503, got %d", resp.StatusCode)
+	if resp.StatusCode != expectedStatusCode {
+		t.Errorf(
+			"Invalid StatusCode received. Expected %d, got %d",
+			expectedStatusCode,
+			resp.StatusCode,
+		)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if bodyStr := string(body); !strings.Contains(bodyStr, expectedBody) {
+		t.Errorf(
+			"Received incorrect response body. Expected to contain %q, got %q",
+			expectedBody,
+			bodyStr,
+		)
 	}
 
 	StartBackendsInOrder(*edgeHost)
-
 }
 
 // Should serve a known static error page if all backend servers return a
