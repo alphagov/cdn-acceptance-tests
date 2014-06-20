@@ -23,6 +23,7 @@ type CDNServeMux struct {
 }
 
 func (s *CDNServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Backend-Name", s.Name)
 	if r.Method == "HEAD" && r.URL.Path == "/" {
 		w.Header().Set("PING", "PONG")
 		return
@@ -129,30 +130,18 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 func StartBackendsInOrder(edgeHost string) {
 
 	backupServer2 = StartServer("backup2", *backupPort2)
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Backend-Marker", backupServer2.Name)
-		w.WriteHeader(200)
-	})
 	err := waitForBackend(edgeHost, backupServer2.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	backupServer1 = StartServer("backup1", *backupPort1)
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Backend-Marker", backupServer1.Name)
-		w.WriteHeader(200)
-	})
 	err = waitForBackend(edgeHost, backupServer1.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	originServer = StartServer("origin", *originPort)
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Backend-Marker", originServer.Name)
-		w.WriteHeader(200)
-	})
 	err = waitForBackend(edgeHost, originServer.Name)
 	if err != nil {
 		log.Fatal(err)
@@ -166,7 +155,7 @@ func StartBackendsInOrder(edgeHost string) {
 //
 func waitForBackend(
 	edgeHost string,
-	expectedBackendMarker string,
+	expectedBackendName string,
 ) error {
 
 	const maxRetries = 20
@@ -175,7 +164,7 @@ func waitForBackend(
 
 	var sourceUrl string
 
-	log.Printf("Checking health of %s...", expectedBackendMarker)
+	log.Printf("Checking health of %s...", expectedBackendName)
 	for try := 0; try <= maxRetries; try++ {
 		uuid := NewUUID()
 		sourceUrl = fmt.Sprintf("https://%s/?cacheBuster=%s", edgeHost, uuid)
@@ -184,11 +173,11 @@ func waitForBackend(
 		if err != nil {
 			return err
 		}
-		if resp.Header.Get("Backend-Marker") == expectedBackendMarker {
+		if resp.Header.Get("Backend-Name") == expectedBackendName {
 			if try != 0 {
 				time.Sleep(waitForCdnProbeToPropagate)
 			}
-			log.Println(expectedBackendMarker + " is up!")
+			log.Println(expectedBackendName + " is up!")
 			return nil // all is well!
 		}
 		time.Sleep(timeBetweenAttempts)
@@ -196,7 +185,7 @@ func waitForBackend(
 
 	return fmt.Errorf(
 		"%s still not available after %d attempts",
-		expectedBackendMarker,
+		expectedBackendName,
 		maxRetries,
 	)
 
