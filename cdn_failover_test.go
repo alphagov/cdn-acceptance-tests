@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -26,12 +25,7 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 		t.Errorf("Invalid StatusCode received. Expected 503, got %d", resp.StatusCode)
 	}
 
-	err := StartBackendsInOrder(*edgeHost)
-	if err != nil {
-		// Bomb out - we do not have a consistent backend, so subsequent tests
-		// would fail in unexpected ways.
-		log.Fatal(err)
-	}
+	StartBackendsInOrder(*edgeHost)
 
 }
 

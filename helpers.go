@@ -126,16 +126,16 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 //
 // We assume that all backends are stopped, so that we can start them in order.
 //
-func StartBackendsInOrder(edgeHost string) (err error) {
+func StartBackendsInOrder(edgeHost string) {
 
 	backupServer2 = StartServer("backup2", *backupPort2)
 	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Backend-Marker", backupServer2.Name)
 		w.WriteHeader(200)
 	})
-	err = waitForBackend(edgeHost, backupServer2.Name)
+	err := waitForBackend(edgeHost, backupServer2.Name)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 
 	backupServer1 = StartServer("backup1", *backupPort1)
@@ -145,7 +145,7 @@ func StartBackendsInOrder(edgeHost string) (err error) {
 	})
 	err = waitForBackend(edgeHost, backupServer1.Name)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 
 	originServer = StartServer("origin", *originPort)
@@ -155,11 +155,8 @@ func StartBackendsInOrder(edgeHost string) (err error) {
 	})
 	err = waitForBackend(edgeHost, originServer.Name)
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
-
-	// All is well
-	return nil
 
 }
 

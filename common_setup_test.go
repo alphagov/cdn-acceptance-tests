@@ -54,10 +54,8 @@ func init() {
 	}
 
 	log.Println("Confirming that CDN is healthy")
-	err := StartBackendsInOrder(*edgeHost)
-	if err != nil {
-		log.Fatal(err)
-	}
+	StartBackendsInOrder(*edgeHost)
+
 }
 
 // CacheHostIpAddress looks up the IP address for a given host name,
