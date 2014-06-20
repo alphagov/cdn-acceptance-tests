@@ -64,6 +64,10 @@ func StoppableHttpListenAndServe(addr string, mux *CDNServeMux) error {
 	return nil
 }
 
+func (mux *CDNServeMux) Stop() {
+	mux.server.Close()
+}
+
 // Return a v4 (random) UUID string.
 // This might not be strictly RFC4122 compliant, but it will do. Credit:
 // https://groups.google.com/d/msg/golang-nuts/Rn13T6BZpgE/dBaYVJ4hB5gJ
