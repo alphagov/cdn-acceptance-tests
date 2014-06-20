@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -13,7 +14,32 @@ import (
 // NB: ideally this should be a page that we control that has a mechanism
 //     to alert us that it has been served.
 func TestFailoverErrorPageAllServersDown(t *testing.T) {
-	t.Error("Not implemented")
+
+	originServer.Stop()
+	backupServer1.Stop()
+	backupServer2.Stop()
+
+	sourceUrl := fmt.Sprintf("https://%s/?cache-bust=%s", *edgeHost, NewUUID())
+	req, err := http.NewRequest("GET", sourceUrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := client.RoundTrip(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != 503 {
+		t.Errorf("Invalid StatusCode received. Expected 503, got %d", resp.StatusCode)
+	}
+
+	err = StartBackendsInOrder(*edgeHost)
+	if err != nil {
+		// Bomb out - we do not have a consistent backend, so subsequent tests
+		// would fail in unexpected ways.
+		log.Fatal(err)
+	}
+
 }
 
 // Should serve a known static error page if all backend servers return a
