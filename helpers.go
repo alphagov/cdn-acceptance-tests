@@ -133,29 +133,14 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 //
 // We assume that all backends are stopped, so that we can start them in order.
 //
-func StartBackendsInOrder(edgeHost string) {
-
-	backupServer2 = &CDNBackendServer{"backup2", *backupPort2, nil, nil}
-	backupServer2.Start()
-	err := waitForBackend(edgeHost, backupServer2.Name)
-	if err != nil {
-		log.Fatal(err)
+func StartBackendsInOrder(edgeHost string, backends []*CDNBackendServer) {
+	for i := len(backends); i > 0; i-- {
+		backends[i-1].Start()
+		err := waitForBackend(edgeHost, backends[i-1].Name)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-
-	backupServer1 = &CDNBackendServer{"backup1", *backupPort1, nil, nil}
-	backupServer1.Start()
-	err = waitForBackend(edgeHost, backupServer1.Name)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	originServer = &CDNBackendServer{"origin", *originPort, nil, nil}
-	originServer.Start()
-	err = waitForBackend(edgeHost, originServer.Name)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 }
 
 // Wait for the backend to return with the header we expect. This is designed to

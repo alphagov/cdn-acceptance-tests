@@ -23,10 +23,11 @@ var (
 const requestTimeout = time.Second * 5
 
 var (
-	client        *http.Transport
-	originServer  *CDNBackendServer
-	backupServer1 *CDNBackendServer
-	backupServer2 *CDNBackendServer
+	client             *http.Transport
+	originServer       *CDNBackendServer
+	backupServer1      *CDNBackendServer
+	backupServer2      *CDNBackendServer
+	backendsByPriority []*CDNBackendServer
 )
 
 var hardCachedEdgeHostIp string
@@ -53,8 +54,27 @@ func init() {
 		Dial:                  HardCachedHostDial,
 	}
 
+	originServer = &CDNBackendServer{
+		Name: "origin",
+		Port: *originPort,
+	}
+	backupServer1 = &CDNBackendServer{
+		Name: "backup1",
+		Port: *backupPort1,
+	}
+	backupServer2 = &CDNBackendServer{
+		Name: "backup2",
+		Port: *backupPort2,
+	}
+
+	backendsByPriority = []*CDNBackendServer{
+		originServer,
+		backupServer1,
+		backupServer2,
+	}
+
 	log.Println("Confirming that CDN is healthy")
-	StartBackendsInOrder(*edgeHost)
+	StartBackendsInOrder(*edgeHost, backendsByPriority)
 
 }
 

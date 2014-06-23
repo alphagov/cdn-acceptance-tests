@@ -46,7 +46,7 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 		)
 	}
 
-	StartBackendsInOrder(*edgeHost)
+	StartBackendsInOrder(*edgeHost, backendsByPriority)
 }
 
 // Should serve a known static error page if all backend servers return a
