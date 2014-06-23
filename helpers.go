@@ -53,30 +53,18 @@ func (s *CDNBackendServer) Stop() {
 
 func (s *CDNBackendServer) Start() {
 	s.ResetHandler()
+
 	addr := fmt.Sprintf(":%d", s.Port)
-
-	go func() {
-		err := StoppableHttpListenAndServe(addr, s)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	log.Printf("Started server on port %d", s.Port)
-}
-
-func StoppableHttpListenAndServe(addr string, backend *CDNBackendServer) error {
-	server := httptest.NewUnstartedServer(backend)
-	backend.server = server
-
-	l, e := net.Listen("tcp", addr)
-	if e != nil {
-		log.Fatal(e)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	server.Listener = l
-	server.Start()
-	return nil
+	s.server = httptest.NewUnstartedServer(s)
+	s.server.Listener = ln
+	s.server.Start()
+
+	log.Printf("Started server on port %d", s.Port)
 }
 
 // Return a v4 (random) UUID string.
