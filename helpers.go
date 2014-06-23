@@ -34,6 +34,10 @@ func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler(w, r)
 }
 
+func (s *CDNBackendServer) ResetHandler() {
+	s.handler = func(w http.ResponseWriter, r *http.Request) {}
+}
+
 func (s *CDNBackendServer) SwitchHandler(h func(w http.ResponseWriter, r *http.Request)) {
 	s.handler = h
 }
@@ -42,21 +46,18 @@ func (s *CDNBackendServer) Stop() {
 	s.server.Close()
 }
 
-// Start a new server and return the CDNBackendServer used.
-func StartServer(name string, port int) *CDNBackendServer {
-	handler := func(w http.ResponseWriter, r *http.Request) {}
-	backend := &CDNBackendServer{name, port, handler, nil}
-	addr := fmt.Sprintf(":%d", port)
+func (s *CDNBackendServer) Start() {
+	s.ResetHandler()
+	addr := fmt.Sprintf(":%d", s.Port)
 
 	go func() {
-		err := StoppableHttpListenAndServe(addr, backend)
+		err := StoppableHttpListenAndServe(addr, s)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
 
-	log.Printf("Started server on port %d", port)
-	return backend
+	log.Printf("Started server on port %d", s.Port)
 }
 
 func StoppableHttpListenAndServe(addr string, backend *CDNBackendServer) error {
@@ -134,19 +135,22 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 //
 func StartBackendsInOrder(edgeHost string) {
 
-	backupServer2 = StartServer("backup2", *backupPort2)
+	backupServer2 = &CDNBackendServer{"backup2", *backupPort2, nil, nil}
+	backupServer2.Start()
 	err := waitForBackend(edgeHost, backupServer2.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	backupServer1 = StartServer("backup1", *backupPort1)
+	backupServer1 = &CDNBackendServer{"backup1", *backupPort1, nil, nil}
+	backupServer1.Start()
 	err = waitForBackend(edgeHost, backupServer1.Name)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	originServer = StartServer("origin", *originPort)
+	originServer = &CDNBackendServer{"origin", *originPort, nil, nil}
+	originServer.Start()
 	err = waitForBackend(edgeHost, originServer.Name)
 	if err != nil {
 		log.Fatal(err)
