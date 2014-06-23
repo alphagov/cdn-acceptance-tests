@@ -93,6 +93,6 @@ func TestHelpersCDNServeStop(t *testing.T) {
 	// Reset back to a known-good state
 	backupServer1.Stop()
 	backupServer2.Stop()
-	ResetBackends(*edgeHost, backendsByPriority)
+	ResetBackends(backendsByPriority)
 
 }

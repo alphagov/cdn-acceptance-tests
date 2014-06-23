@@ -123,7 +123,7 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 // handler function, and that the edge considers them healthy. It may take
 // some time because we need to receive and respond to enough probe health
 // checks to be considered up.
-func ResetBackends(edgeHost string, backends []*CDNBackendServer) {
+func ResetBackends(backends []*CDNBackendServer) {
 	remainingBackendsStopped := false
 
 	// Reverse priority order so that waitForBackend works.
@@ -141,7 +141,7 @@ func ResetBackends(edgeHost string, backends []*CDNBackendServer) {
 			}
 
 			backend.Start()
-			err := waitForBackend(edgeHost, backend.Name)
+			err := waitForBackend(backend.Name)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -162,22 +162,17 @@ func stopBackends(backends []*CDNBackendServer) {
 // confirm that requests are hitting this specific backend, rather than a lower-level
 // backend that this overrides (for example, origin over a mirror)
 //
-func waitForBackend(
-	edgeHost string,
-	expectedBackendName string,
-) error {
-
+func waitForBackend(expectedBackendName string) error {
 	const maxRetries = 20
 	const waitForCdnProbeToPropagate = time.Duration(5 * time.Second)
 	const timeBetweenAttempts = time.Duration(2 * time.Second)
 
-	var sourceUrl string
+	var url string
 
 	log.Printf("Checking health of %s...", expectedBackendName)
 	for try := 0; try <= maxRetries; try++ {
-		uuid := NewUUID()
-		sourceUrl = fmt.Sprintf("https://%s/?cacheBuster=%s", edgeHost, uuid)
-		req, _ := http.NewRequest("GET", sourceUrl, nil)
+		url = NewUniqueEdgeURL()
+		req, _ := http.NewRequest("GET", url, nil)
 		resp, err := client.RoundTrip(req)
 		if err != nil {
 			return err
