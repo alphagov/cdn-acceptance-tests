@@ -42,8 +42,13 @@ func (s *CDNBackendServer) SwitchHandler(h func(w http.ResponseWriter, r *http.R
 	s.handler = h
 }
 
+func (s *CDNBackendServer) IsStarted() bool {
+	return (s.server != nil)
+}
+
 func (s *CDNBackendServer) Stop() {
 	s.server.Close()
+	s.server = nil
 }
 
 func (s *CDNBackendServer) Start() {

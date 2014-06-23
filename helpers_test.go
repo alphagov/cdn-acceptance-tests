@@ -52,6 +52,14 @@ func TestHelpersCDNBackendServerProbes(t *testing.T) {
 func TestHelpersCDNServeStop(t *testing.T) {
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
 
+	if started := originServer.IsStarted(); started != true {
+		t.Error(
+			"originServer.IsStarted() incorrect. Expected %q, got %q",
+			true,
+			started,
+		)
+	}
+
 	url := fmt.Sprintf("http://localhost:%d/foo", originServer.Port)
 	req, _ := http.NewRequest("GET", url, nil)
 
@@ -64,6 +72,13 @@ func TestHelpersCDNServeStop(t *testing.T) {
 	}
 
 	originServer.Stop()
+	if started := originServer.IsStarted(); started != false {
+		t.Error(
+			"originServer.IsStarted() incorrect. Expected %q, got %q",
+			false,
+			started,
+		)
+	}
 
 	resp, err = client.RoundTrip(req)
 	if err == nil {
