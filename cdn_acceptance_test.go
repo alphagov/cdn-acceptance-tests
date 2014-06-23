@@ -12,6 +12,8 @@ import (
 
 // Should redirect from HTTP to HTTPS without hitting origin.
 func TestProtocolRedirect(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Request should not have made it to origin")
 	})
@@ -33,6 +35,8 @@ func TestProtocolRedirect(t *testing.T) {
 // Should return 403 for PURGE requests from IPs not in the whitelist. We
 // assume that this is not running from a whitelisted address.
 func TestRestrictPurgeRequests(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	const expectedStatusCode = 403
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +56,8 @@ func TestRestrictPurgeRequests(t *testing.T) {
 // have one and append to requests that already have the header. This test
 // will not work if run from behind a proxy that also sets XFF.
 func TestHeaderXFFCreateAndAppend(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	const headerName = "X-Forwarded-For"
 	const sentHeaderVal = "203.0.113.99"
 	var ourReportedIP net.IP
@@ -99,6 +105,8 @@ func TestHeaderXFFCreateAndAppend(t *testing.T) {
 // Should create a True-Client-IP header containing the client's IP
 // address, discarding the value provided in the original request.
 func TestHeaderUnspoofableClientIP(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	const headerName = "True-Client-IP"
 	const sentHeaderVal = "203.0.113.99"
 	var sentHeaderIP = net.ParseIP(sentHeaderVal)
@@ -127,6 +135,7 @@ func TestHeaderHostUnmodified(t *testing.T) {
 	var sentHeaderVal = *edgeHost
 	var receivedHeaderVal string
 
+	ResetBackends(backendsByPriority)
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaderVal = r.Host
 	})
@@ -160,6 +169,8 @@ func TestHeaderHostUnmodified(t *testing.T) {
 
 // Should set an Age header itself rather than passing the Age header from origin.
 func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	const originAgeInSeconds = 100
 	const secondsToWaitBetweenRequests = 5
 	requestReceivedCount := 0
@@ -213,6 +224,7 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 
 // Should set an X-Cache header containing HIT/MISS from 'origin, itself'
 func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
+	ResetBackends(backendsByPriority)
 
 	const originXCache = "HIT"
 
@@ -243,14 +255,13 @@ func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
 
 // Should set an X-Cache header containing only MISS if origin does not set an X-Cache Header'
 func TestXCacheHeaderContainsMissOnlyIfOriginDoesNotSetXCache(t *testing.T) {
+	ResetBackends(backendsByPriority)
 
 	const expectedXCache = "MISS"
 
 	var (
 		xCache string
 	)
-
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
 
 	// Get first request, will come from origin, cannot be cached - hence cache MISS
 	req := NewUniqueEdgeGET(t)
@@ -269,10 +280,9 @@ func TestXCacheHeaderContainsMissOnlyIfOriginDoesNotSetXCache(t *testing.T) {
 
 // Should set an X-Served-By header giving information on the (Fastly) node and location served from.
 func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
+	ResetBackends(backendsByPriority)
 
 	expectedFastlyXServedByRegexp := regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
-
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
@@ -292,6 +302,7 @@ func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
 // from the Edge AND the Origin, assuming Origin sets one.
 // This is in the format "{origin-hit-count}, {edge-hit-count}"
 func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
+	ResetBackends(backendsByPriority)
 
 	const originXCacheHits = "53"
 
@@ -301,6 +312,7 @@ func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
 	)
 
 	uuid := NewUUID()
+
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
 			w.Header().Set("X-Cache-Hits", originXCacheHits)
