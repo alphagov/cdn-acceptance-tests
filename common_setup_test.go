@@ -74,7 +74,7 @@ func init() {
 	}
 
 	log.Println("Confirming that CDN is healthy")
-	StartBackendsInOrder(*edgeHost, backendsByPriority)
+	ResetBackends(*edgeHost, backendsByPriority)
 
 }
 

@@ -119,19 +119,41 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 	return resp
 }
 
-// Confirm that the edge (CDN) is working correctly with respect to its
-// perception of the state of its backend nodes. This may take some time
-// because our CDNBackendServer needs to receive and respond to enough probe
-// health checks to be considered up.
-//
-// We assume that all backends are stopped, so that we can start them in order.
-//
-func StartBackendsInOrder(edgeHost string, backends []*CDNBackendServer) {
+// Reset all backends, ensuring that they are started, have the default
+// handler function, and that the edge considers them healthy. It may take
+// some time because we need to receive and respond to enough probe health
+// checks to be considered up.
+func ResetBackends(edgeHost string, backends []*CDNBackendServer) {
+	remainingBackendsStopped := false
+
+	// Reverse priority order so that waitForBackend works.
 	for i := len(backends); i > 0; i-- {
-		backends[i-1].Start()
-		err := waitForBackend(edgeHost, backends[i-1].Name)
-		if err != nil {
-			log.Fatal(err)
+		backend := backends[i-1]
+
+		if backend.IsStarted() {
+			backend.ResetHandler()
+		} else {
+			if !remainingBackendsStopped {
+				// Ensure all remaining unchecked backends are stopped so that
+				// waitForBackend will work. We'll bring them back one-by-one.
+				stopBackends(backends[0 : i-1])
+				remainingBackendsStopped = true
+			}
+
+			backend.Start()
+			err := waitForBackend(edgeHost, backend.Name)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
+
+// Ensure that a slice of backends are stopped.
+func stopBackends(backends []*CDNBackendServer) {
+	for _, backend := range backends {
+		if backend.IsStarted() {
+			backend.Stop()
 		}
 	}
 }
