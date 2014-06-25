@@ -13,10 +13,8 @@ import (
 	"time"
 )
 
-// An instance of a backend server which will receive requests from the CDN.
-// Implements the http.Handler interface with a modifiable handler so that
-// tests can pass in their own functions to inspect requests and modify
-// responses.
+// CDNBackendServer is a backend server which will receive and respond to
+// requests from the CDN.
 type CDNBackendServer struct {
 	Name    string
 	Port    int
@@ -24,6 +22,9 @@ type CDNBackendServer struct {
 	server  *httptest.Server
 }
 
+// ServeHTTP satisfies the http.HandlerFunc interface. Health check requests
+// for `HEAD /` are always served 200 responses. Other requests are passed
+// off to a custom handler provided by SwitchHandler.
 func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Backend-Name", s.Name)
 	if r.Method == "HEAD" && r.URL.Path == "/" {
@@ -34,43 +35,48 @@ func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler(w, r)
 }
 
+// ResetHandler sets the handler back to an empty function that will return
+// a 200 response.
+func (s *CDNBackendServer) ResetHandler() {
+	s.handler = func(w http.ResponseWriter, r *http.Request) {}
+}
+
+// SwitchHandler sets the handler to a custom function. This is used by
+// tests to pass in their own request inspection and response handler.
 func (s *CDNBackendServer) SwitchHandler(h func(w http.ResponseWriter, r *http.Request)) {
 	s.handler = h
 }
 
+// IsStarted checks whether the server is currently started.
+func (s *CDNBackendServer) IsStarted() bool {
+	return (s.server != nil)
+}
+
+// Stop closes all outstanding client connections and unbind the port.
+// Resets server back to nil, as if the backend had been instantiated but
+// Start() not called.
 func (s *CDNBackendServer) Stop() {
 	s.server.Close()
+	s.server = nil
 }
 
-// Start a new server and return the CDNBackendServer used.
-func StartServer(name string, port int) *CDNBackendServer {
-	handler := func(w http.ResponseWriter, r *http.Request) {}
-	backend := &CDNBackendServer{name, port, handler, nil}
-	addr := fmt.Sprintf(":%d", port)
+// Start resets the handler back to the default and starts the server on
+// Port. It will exit immediately if it's unable to bind the port, due to
+// permissions or a conflicting application.
+func (s *CDNBackendServer) Start() {
+	s.ResetHandler()
 
-	go func() {
-		err := StoppableHttpListenAndServe(addr, backend)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	log.Printf("Started server on port %d", port)
-	return backend
-}
-
-func StoppableHttpListenAndServe(addr string, backend *CDNBackendServer) error {
-	server := httptest.NewUnstartedServer(backend)
-	backend.server = server
-
-	l, e := net.Listen("tcp", addr)
-	if e != nil {
-		log.Fatal(e)
+	addr := fmt.Sprintf(":%d", s.Port)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	server.Listener = l
-	server.Start()
-	return nil
+	s.server = httptest.NewUnstartedServer(s)
+	s.server.Listener = ln
+	s.server.Start()
+
+	log.Printf("Started server on port %d", s.Port)
 }
 
 // Return a v4 (random) UUID string.
@@ -125,55 +131,60 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 	return resp
 }
 
-// Confirm that the edge (CDN) is working correctly with respect to its
-// perception of the state of its backend nodes. This may take some time
-// because our CDNBackendServer needs to receive and respond to enough probe
-// health checks to be considered up.
-//
-// We assume that all backends are stopped, so that we can start them in order.
-//
-func StartBackendsInOrder(edgeHost string) {
+// Reset all backends, ensuring that they are started, have the default
+// handler function, and that the edge considers them healthy. It may take
+// some time because we need to receive and respond to enough probe health
+// checks to be considered up.
+func ResetBackends(backends []*CDNBackendServer) {
+	remainingBackendsStopped := false
 
-	backupServer2 = StartServer("backup2", *backupPort2)
-	err := waitForBackend(edgeHost, backupServer2.Name)
-	if err != nil {
-		log.Fatal(err)
+	// Reverse priority order so that waitForBackend works.
+	for i := len(backends); i > 0; i-- {
+		backend := backends[i-1]
+
+		if backend.IsStarted() {
+			backend.ResetHandler()
+		} else {
+			if !remainingBackendsStopped {
+				// Ensure all remaining unchecked backends are stopped so that
+				// waitForBackend will work. We'll bring them back one-by-one.
+				stopBackends(backends[0 : i-1])
+				remainingBackendsStopped = true
+			}
+
+			backend.Start()
+			err := waitForBackend(backend.Name)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
+}
 
-	backupServer1 = StartServer("backup1", *backupPort1)
-	err = waitForBackend(edgeHost, backupServer1.Name)
-	if err != nil {
-		log.Fatal(err)
+// Ensure that a slice of backends are stopped.
+func stopBackends(backends []*CDNBackendServer) {
+	for _, backend := range backends {
+		if backend.IsStarted() {
+			backend.Stop()
+		}
 	}
-
-	originServer = StartServer("origin", *originPort)
-	err = waitForBackend(edgeHost, originServer.Name)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 }
 
 // Wait for the backend to return with the header we expect. This is designed to
 // confirm that requests are hitting this specific backend, rather than a lower-level
 // backend that this overrides (for example, origin over a mirror)
 //
-func waitForBackend(
-	edgeHost string,
-	expectedBackendName string,
-) error {
-
+func waitForBackend(expectedBackendName string) error {
 	const maxRetries = 20
 	const waitForCdnProbeToPropagate = time.Duration(5 * time.Second)
 	const timeBetweenAttempts = time.Duration(2 * time.Second)
 
-	var sourceUrl string
+	var url string
 
 	log.Printf("Checking health of %s...", expectedBackendName)
 	for try := 0; try <= maxRetries; try++ {
-		uuid := NewUUID()
-		sourceUrl = fmt.Sprintf("https://%s/?cacheBuster=%s", edgeHost, uuid)
-		req, _ := http.NewRequest("GET", sourceUrl, nil)
+		url = NewUniqueEdgeURL()
+		req, _ := http.NewRequest("GET", url, nil)
 		resp, err := client.RoundTrip(req)
 		if err != nil {
 			return err

@@ -8,7 +8,10 @@ import (
 
 // Should send request to origin by default
 func TestNoCacheNewRequestOrigin(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	uuid := NewUUID()
+
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
 			w.Header().Set("EnsureOriginServed", uuid)
@@ -30,6 +33,8 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 
 // Should not cache the response to a POST request.
 func TestNoCachePOST(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	req := NewUniqueEdgeGET(t)
 	req.Method = "POST"
 
@@ -38,6 +43,8 @@ func TestNoCachePOST(t *testing.T) {
 
 // Should not cache the response to a request with a `Authorization` header.
 func TestNoCacheHeaderAuthorization(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	req := NewUniqueEdgeGET(t)
 	req.Header.Set("Authorization", "Basic YXJlbnR5b3U6aW5xdWlzaXRpdmU=")
 
@@ -46,6 +53,8 @@ func TestNoCacheHeaderAuthorization(t *testing.T) {
 
 // Should not cache the response to a request with a `Cookie` header.
 func TestNoCacheHeaderCookie(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	req := NewUniqueEdgeGET(t)
 	req.Header.Set("Cookie", "sekret=mekmitasdigoat")
 
@@ -54,6 +63,8 @@ func TestNoCacheHeaderCookie(t *testing.T) {
 
 // Should not cache a response with a `Set-Cookie` header.
 func TestNoCacheHeaderSetCookie(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	handler := func(h http.Header) {
 		h.Set("Set-Cookie", "sekret=mekmitasdigoat")
 	}
@@ -64,6 +75,8 @@ func TestNoCacheHeaderSetCookie(t *testing.T) {
 
 // Should not cache a response with a `Cache-Control: private` header.
 func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	handler := func(h http.Header) {
 		h.Set("Cache-Control", "private")
 	}

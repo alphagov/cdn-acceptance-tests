@@ -14,6 +14,8 @@ import (
 // NB: ideally this should be a page that we control that has a mechanism
 //     to alert us that it has been served.
 func TestFailoverErrorPageAllServersDown(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	const expectedStatusCode = http.StatusServiceUnavailable
 	const expectedBody = "Guru Meditation"
 
@@ -45,8 +47,6 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 			bodyStr,
 		)
 	}
-
-	StartBackendsInOrder(*edgeHost)
 }
 
 // Should serve a known static error page if all backend servers return a
@@ -72,6 +72,8 @@ func TestFailoverOriginDownServeStale(t *testing.T) {
 // Should serve stale object and not hit mirror(s) if origin returns a 5xx
 // response and object is beyond TTL but still in cache.
 func TestFailoverOrigin5xxServeStale(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	const expectedResponseStale = "going off like stilton"
 	const expectedResponseFresh = "as fresh as daisies"
 
@@ -148,6 +150,8 @@ func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
 // Should fallback to first mirror if origin returns 5xx response and object
 // is not in cache (active or stale).
 func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	expectedBody := "lucky golden ticket"
 	expectedStatus := http.StatusOK
 	backendsSawRequest := map[string]bool{}
@@ -212,6 +216,8 @@ func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
 // Should fallback to second mirror if both origin and first mirror return
 // 5xx responses.
 func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	expectedBody := "lucky golden ticket"
 	expectedStatus := http.StatusOK
 	backendsSawRequest := map[string]bool{}
@@ -276,6 +282,8 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 // No-Fallback header. In order to allow applications to present their own
 // error pages.
 func TestFailoverNoFallbackHeader(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	const headerName = "No-Fallback"
 	const expectedStatus = http.StatusServiceUnavailable
 	const expectedBody = "custom error page"

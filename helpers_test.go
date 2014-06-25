@@ -11,7 +11,7 @@ import (
 // suite starts and then serve custom handlers each with their own status
 // code.
 func TestHelpersCDNBackendServerHandlers(t *testing.T) {
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
+	ResetBackends(backendsByPriority)
 
 	url := fmt.Sprintf("http://localhost:%d/foo", originServer.Port)
 	req, _ := http.NewRequest("GET", url, nil)
@@ -36,6 +36,8 @@ func TestHelpersCDNBackendServerHandlers(t *testing.T) {
 // CDNBackendServer should always respond to HEAD requests in order for the
 // CDN to determine the health of our origin.
 func TestHelpersCDNBackendServerProbes(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("HEAD request incorrectly served by CDNBackendServer.handler")
 	})
@@ -50,7 +52,15 @@ func TestHelpersCDNBackendServerProbes(t *testing.T) {
 }
 
 func TestHelpersCDNServeStop(t *testing.T) {
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {})
+	ResetBackends(backendsByPriority)
+
+	if started := originServer.IsStarted(); started != true {
+		t.Error(
+			"originServer.IsStarted() incorrect. Expected %q, got %q",
+			true,
+			started,
+		)
+	}
 
 	url := fmt.Sprintf("http://localhost:%d/foo", originServer.Port)
 	req, _ := http.NewRequest("GET", url, nil)
@@ -64,6 +74,13 @@ func TestHelpersCDNServeStop(t *testing.T) {
 	}
 
 	originServer.Stop()
+	if started := originServer.IsStarted(); started != false {
+		t.Error(
+			"originServer.IsStarted() incorrect. Expected %q, got %q",
+			false,
+			started,
+		)
+	}
 
 	resp, err = client.RoundTrip(req)
 	if err == nil {
@@ -74,10 +91,4 @@ func TestHelpersCDNServeStop(t *testing.T) {
 	if !re.MatchString(fmt.Sprintf("%s", err)) {
 		t.Errorf("Connection error %q is not as expected", err)
 	}
-
-	// Reset back to a known-good state
-	backupServer1.Stop()
-	backupServer2.Stop()
-	StartBackendsInOrder(*edgeHost)
-
 }
