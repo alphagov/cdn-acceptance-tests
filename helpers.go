@@ -13,10 +13,8 @@ import (
 	"time"
 )
 
-// An instance of a backend server which will receive requests from the CDN.
-// Implements the http.Handler interface with a modifiable handler so that
-// tests can pass in their own functions to inspect requests and modify
-// responses.
+// CDNBackendServer is a backend server which will receive and respond to
+// requests from the CDN.
 type CDNBackendServer struct {
 	Name    string
 	Port    int
@@ -24,6 +22,9 @@ type CDNBackendServer struct {
 	server  *httptest.Server
 }
 
+// ServeHTTP satisfies the http.HandlerFunc interface. Health check requests
+// for `HEAD /` are always served 200 responses. Other requests are passed
+// off to a custom handler provided by SwitchHandler.
 func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Backend-Name", s.Name)
 	if r.Method == "HEAD" && r.URL.Path == "/" {
@@ -34,23 +35,34 @@ func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.handler(w, r)
 }
 
+// ResetHandler sets the handler back to an empty function that will return
+// a 200 response.
 func (s *CDNBackendServer) ResetHandler() {
 	s.handler = func(w http.ResponseWriter, r *http.Request) {}
 }
 
+// SwitchHandler sets the handler to a custom function. This is used by
+// tests to pass in their own request inspection and response handler.
 func (s *CDNBackendServer) SwitchHandler(h func(w http.ResponseWriter, r *http.Request)) {
 	s.handler = h
 }
 
+// IsStarted checks whether the server is currently started.
 func (s *CDNBackendServer) IsStarted() bool {
 	return (s.server != nil)
 }
 
+// Stop closes all outstanding client connections and unbind the port.
+// Resets server back to nil, as if the backend had been instantiated but
+// Start() not called.
 func (s *CDNBackendServer) Stop() {
 	s.server.Close()
 	s.server = nil
 }
 
+// Start resets the handler back to the default and starts the server on
+// Port. It will exit immediately if it's unable to bind the port, due to
+// permissions or a conflicting application.
 func (s *CDNBackendServer) Start() {
 	s.ResetHandler()
 
