@@ -7,7 +7,7 @@ import (
 )
 
 // Should redirect from HTTP to HTTPS without hitting origin.
-func TestProtocolRedirect(t *testing.T) {
+func TestMiscProtocolRedirect(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +30,7 @@ func TestProtocolRedirect(t *testing.T) {
 
 // Should return 403 for PURGE requests from IPs not in the whitelist. We
 // assume that this is not running from a whitelisted address.
-func TestRestrictPurgeRequests(t *testing.T) {
+func TestMiscRestrictPurgeRequests(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const expectedStatusCode = 403
