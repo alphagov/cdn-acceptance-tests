@@ -12,12 +12,14 @@ import (
 // Test that useful common cache-related parameters are sent to the
 // client by this CDN provider.
 
-// Should set an Age header itself rather than passing the Age header from origin.
-func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
+// Should propagate an Age header from origin and then increment it for the
+// time it's in cache.
+func TestAgeHeaderIncrementedByProvider(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const originAgeInSeconds = 100
 	const secondsToWaitBetweenRequests = 5
+	const expectedAgeInSeconds = originAgeInSeconds + secondsToWaitBetweenRequests
 	requestReceivedCount := 0
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +58,6 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 		t.Fatal(convErr)
 	}
 
-	expectedAgeInSeconds := originAgeInSeconds + secondsToWaitBetweenRequests
 	if edgeAgeInSeconds != expectedAgeInSeconds {
 		t.Errorf(
 			"Age header from Edge is not as expected. Got %q, expected '%d'",
@@ -64,7 +65,6 @@ func TestAgeHeaderIsSetByProviderNotOrigin(t *testing.T) {
 			expectedAgeInSeconds,
 		)
 	}
-
 }
 
 // Should set an X-Cache header containing HIT/MISS from 'origin, itself'
