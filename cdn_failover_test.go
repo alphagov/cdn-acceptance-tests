@@ -286,7 +286,40 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 // Should fallback to second mirror if both origin and first mirror are
 // down.
 func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
-	t.Error("Not implemented")
+	ResetBackends(backendsByPriority)
+
+	expectedBody := "lucky golden ticket"
+	expectedStatus := http.StatusOK
+
+	originServer.Stop()
+	backupServer1.Stop()
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(expectedBody))
+	})
+
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
+
+	if resp.StatusCode != expectedStatus {
+		t.Errorf(
+			"Received incorrect status code. Expected %d, got %d",
+			expectedStatus,
+			resp.StatusCode,
+		)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bodyStr := string(body); bodyStr != expectedBody {
+		t.Errorf(
+			"Received incorrect response body. Expected %q, got %q",
+			expectedBody,
+			bodyStr,
+		)
+	}
 }
 
 // Should fallback to second mirror if both origin and first mirror return
