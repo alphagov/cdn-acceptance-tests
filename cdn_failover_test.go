@@ -49,12 +49,51 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 	}
 }
 
-// Should serve a known static error page if all backend servers return a
-// 5xx response and object isn't in cache/stale.
-// NB: ideally this should be a page that we control that has a mechanism
-//     to alert us that it has been served.
+// Should return the 5xx response from the last backup server if all
+// preceeding servers also return a 5xx response.
 func TestFailoverErrorPageAllServers5xx(t *testing.T) {
-	t.Error("Not implemented")
+	ResetBackends(backendsByPriority)
+
+	const expectedStatusCode = http.StatusServiceUnavailable
+	const expectedBody = "lucky golden ticket"
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte(originServer.Name))
+	})
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte(backupServer1.Name))
+	})
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte(expectedBody))
+	})
+
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
+
+	if resp.StatusCode != expectedStatusCode {
+		t.Errorf(
+			"Invalid StatusCode received. Expected %d, got %d",
+			expectedStatusCode,
+			resp.StatusCode,
+		)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if bodyStr := string(body); bodyStr != expectedBody {
+		t.Errorf(
+			"Received incorrect response body. Expected %q, got %q",
+			expectedBody,
+			bodyStr,
+		)
+	}
 }
 
 // Should back off requests against origin for a very short period of time
@@ -144,7 +183,44 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 // Should fallback to first mirror if origin is down and object is not in
 // cache (active or stale).
 func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
-	t.Error("Not implemented")
+	ResetBackends(backendsByPriority)
+
+	expectedBody := "lucky golden ticket"
+	expectedStatus := http.StatusOK
+
+	originServer.Stop()
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(expectedBody))
+	})
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer2.Name
+		t.Errorf("Server %s received a request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
+
+	if resp.StatusCode != expectedStatus {
+		t.Errorf(
+			"Received incorrect status code. Expected %d, got %d",
+			expectedStatus,
+			resp.StatusCode,
+		)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bodyStr := string(body); bodyStr != expectedBody {
+		t.Errorf(
+			"Received incorrect response body. Expected %q, got %q",
+			expectedBody,
+			bodyStr,
+		)
+	}
 }
 
 // Should fallback to first mirror if origin returns 5xx response and object
@@ -210,7 +286,40 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 // Should fallback to second mirror if both origin and first mirror are
 // down.
 func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
-	t.Error("Not implemented")
+	ResetBackends(backendsByPriority)
+
+	expectedBody := "lucky golden ticket"
+	expectedStatus := http.StatusOK
+
+	originServer.Stop()
+	backupServer1.Stop()
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(expectedBody))
+	})
+
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
+
+	if resp.StatusCode != expectedStatus {
+		t.Errorf(
+			"Received incorrect status code. Expected %d, got %d",
+			expectedStatus,
+			resp.StatusCode,
+		)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bodyStr := string(body); bodyStr != expectedBody {
+		t.Errorf(
+			"Received incorrect response body. Expected %q, got %q",
+			expectedBody,
+			bodyStr,
+		)
+	}
 }
 
 // Should fallback to second mirror if both origin and first mirror return
