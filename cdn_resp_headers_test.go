@@ -14,7 +14,7 @@ import (
 
 // Should propagate an Age header from origin and then increment it for the
 // time it's in cache.
-func TestAgeHeaderIncrementedByProvider(t *testing.T) {
+func TestRespHeaderAge(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const originAgeInSeconds = 100
@@ -68,7 +68,7 @@ func TestAgeHeaderIncrementedByProvider(t *testing.T) {
 }
 
 // Should set an X-Cache header containing HIT/MISS from 'origin, itself'
-func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
+func TestRespHeaderXCacheAppend(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const originXCache = "HIT"
@@ -99,7 +99,7 @@ func TestXCacheHeaderContainsHitMissFromBothProviderAndOrigin(t *testing.T) {
 }
 
 // Should set an X-Cache header containing only MISS if origin does not set an X-Cache Header'
-func TestXCacheHeaderContainsMissOnlyIfOriginDoesNotSetXCache(t *testing.T) {
+func TestRespHeaderXCacheCreate(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const expectedXCache = "MISS"
@@ -124,7 +124,7 @@ func TestXCacheHeaderContainsMissOnlyIfOriginDoesNotSetXCache(t *testing.T) {
 }
 
 // Should set an X-Served-By header giving information on the (Fastly) node and location served from.
-func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
+func TestRespHeaderXServedBy(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	expectedFastlyXServedByRegexp := regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
@@ -146,7 +146,7 @@ func TestXServedByHeaderContainsFastlyNodeIdAndLocation(t *testing.T) {
 // Should set an X-Cache-Hits header containing hit count for this object,
 // from the Edge AND the Origin, assuming Origin sets one.
 // This is in the format "{origin-hit-count}, {edge-hit-count}"
-func TestXCacheHitsContainsProviderHitCountForThisObject(t *testing.T) {
+func TestRespHeaderXCacheHitsAppend(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const originXCacheHits = "53"
