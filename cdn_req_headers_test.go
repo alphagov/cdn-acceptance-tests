@@ -10,7 +10,7 @@ import (
 // Should set an `X-Forwarded-For` header for requests that don't already
 // have one and append to requests that already have the header. This test
 // will not work if run from behind a proxy that also sets XFF.
-func TestHeaderXFFCreateAndAppend(t *testing.T) {
+func TestReqHeaderXFFCreateAndAppend(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const headerName = "X-Forwarded-For"
@@ -59,7 +59,7 @@ func TestHeaderXFFCreateAndAppend(t *testing.T) {
 
 // Should create a True-Client-IP header containing the client's IP
 // address, discarding the value provided in the original request.
-func TestHeaderUnspoofableClientIP(t *testing.T) {
+func TestReqHeaderUnspoofableClientIP(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const headerName = "True-Client-IP"
@@ -85,7 +85,7 @@ func TestHeaderUnspoofableClientIP(t *testing.T) {
 }
 
 // Should not modify `Host` header from original request.
-func TestHeaderHostUnmodified(t *testing.T) {
+func TestReqHeaderHostUnmodified(t *testing.T) {
 	const headerName = "Host"
 	var sentHeaderVal = *edgeHost
 	var receivedHeaderVal string
