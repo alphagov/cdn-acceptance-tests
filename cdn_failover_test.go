@@ -183,7 +183,44 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 // Should fallback to first mirror if origin is down and object is not in
 // cache (active or stale).
 func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
-	t.Error("Not implemented")
+	ResetBackends(backendsByPriority)
+
+	expectedBody := "lucky golden ticket"
+	expectedStatus := http.StatusOK
+
+	originServer.Stop()
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(expectedBody))
+	})
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer2.Name
+		t.Errorf("Server %s received a request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
+
+	if resp.StatusCode != expectedStatus {
+		t.Errorf(
+			"Received incorrect status code. Expected %d, got %d",
+			expectedStatus,
+			resp.StatusCode,
+		)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bodyStr := string(body); bodyStr != expectedBody {
+		t.Errorf(
+			"Received incorrect response body. Expected %q, got %q",
+			expectedBody,
+			bodyStr,
+		)
+	}
 }
 
 // Should fallback to first mirror if origin returns 5xx response and object
