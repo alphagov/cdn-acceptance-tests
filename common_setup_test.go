@@ -38,7 +38,7 @@ func init() {
 	flag.Parse()
 
 	if *edgeHost == "" {
-		fmt.Println("ERROR: -edgeHost must be set to the CDN edge hostname we wish to test against\n")
+		fmt.Printf("ERROR: -edgeHost must be set to the CDN edge hostname we wish to test against\n\n")
 		fmt.Println("Usage:")
 		flag.PrintDefaults()
 		os.Exit(1)
