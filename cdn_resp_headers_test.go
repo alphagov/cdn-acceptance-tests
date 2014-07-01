@@ -45,7 +45,7 @@ func TestRespHeaderAge(t *testing.T) {
 	resp = RoundTripCheckError(t, req)
 
 	if resp.StatusCode != 200 {
-		t.Fatal("Edge returned an unexpected status: %q", resp.Status)
+		t.Fatalf("Edge returned an unexpected status: %q", resp.Status)
 	}
 
 	edgeAgeHeader := resp.Header.Get("Age")
