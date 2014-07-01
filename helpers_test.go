@@ -54,10 +54,13 @@ func TestHelpersCDNBackendServerProbes(t *testing.T) {
 func TestHelpersCDNServeStop(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	if started := originServer.IsStarted(); started != true {
-		t.Error(
-			"originServer.IsStarted() incorrect. Expected %q, got %q",
-			true,
+	var expectedStarted bool
+
+	expectedStarted = true
+	if started := originServer.IsStarted(); started != expectedStarted {
+		t.Errorf(
+			"originServer.IsStarted() incorrect. Expected %t, got %t",
+			expectedStarted,
 			started,
 		)
 	}
@@ -74,10 +77,11 @@ func TestHelpersCDNServeStop(t *testing.T) {
 	}
 
 	originServer.Stop()
-	if started := originServer.IsStarted(); started != false {
-		t.Error(
-			"originServer.IsStarted() incorrect. Expected %q, got %q",
-			false,
+	expectedStarted = false
+	if started := originServer.IsStarted(); started {
+		t.Errorf(
+			"originServer.IsStarted() incorrect. Expected %t, got %t",
+			expectedStarted,
 			started,
 		)
 	}
