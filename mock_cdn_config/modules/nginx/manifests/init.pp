@@ -1,5 +1,8 @@
 class nginx {
-  package { ['nginx', 'ssl-cert']:
+  package { 'nginx':
+    ensure => present,
+  } ->
+  package { 'ssl-cert':
     ensure => present,
   } ->
   file { '/etc/nginx/sites-enabled/default':
