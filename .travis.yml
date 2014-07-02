@@ -1,0 +1,13 @@
+language: go
+
+go:
+  - 1.2
+
+before_script:
+  - sudo apt-get update -qq
+  - sudo apt-get install puppet
+
+script: make travis
+
+notifications:
+  email: false
