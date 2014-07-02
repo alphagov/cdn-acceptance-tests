@@ -16,5 +16,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     puppet.manifest_file = "site.pp"
     puppet.manifests_path = "mock_cdn_config/manifests"
     puppet.module_path = "mock_cdn_config/modules"
+    puppet.facter = {
+      :varnish_backend_address => "172.16.20.1",
+    }
   end
 end

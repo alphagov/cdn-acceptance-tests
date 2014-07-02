@@ -1,5 +1,5 @@
 backend default {
-  .host = "<%= @ipaddress_vmhost -%>";
+  .host = "<%= @varnish_backend_address -%>";
   .port = "8080";
   .probe = {
     .request = "HEAD / HTTP/1.1" "Connection: close";
@@ -13,7 +13,7 @@ backend default {
 }
 
 backend backup1 {
-  .host = "<%= @ipaddress_vmhost -%>";
+  .host = "<%= @varnish_backend_address -%>";
   .port = "8081";
   .probe = {
     .request = "HEAD / HTTP/1.1" "Connection: close";
@@ -27,7 +27,7 @@ backend backup1 {
 }
 
 backend backup2 {
-  .host = "<%= @ipaddress_vmhost -%>";
+  .host = "<%= @varnish_backend_address -%>";
   .port = "8082";
   .probe = {
     .request = "HEAD / HTTP/1.1" "Connection: close";
