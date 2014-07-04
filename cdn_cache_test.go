@@ -90,3 +90,48 @@ func TestCache404Response(t *testing.T) {
 
 	testRequestsCachedIndefinite(t, handler)
 }
+
+// Should cache multiple distinct responses for the same URL when origin responds
+// with a `Vary` header and clients provide requests with different values
+// for that header.
+func TestCacheVary(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	const reqHeaderName = "CustomThing"
+	const respHeaderName = "Reflected-" + reqHeaderName
+	headerVals := []string{
+		"first distinct",
+		"second distinct",
+		"third distinct",
+	}
+
+	req := NewUniqueEdgeGET(t)
+
+	for _, populateCache := range []bool{true, false} {
+		for _, headerVal := range headerVals {
+			if populateCache {
+				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Vary", reqHeaderName)
+					w.Header().Set(respHeaderName, r.Header.Get(reqHeaderName))
+				})
+			} else {
+				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+					t.Error("Request should not have made it to origin")
+					w.Header().Set(respHeaderName, "not cached")
+				})
+			}
+
+			req.Header.Set(reqHeaderName, headerVal)
+			resp := RoundTripCheckError(t, req)
+
+			if recVal := resp.Header.Get(respHeaderName); recVal != headerVal {
+				t.Errorf(
+					"Request received wrong %q header. Expected %q, got %q",
+					respHeaderName,
+					headerVal,
+					recVal,
+				)
+			}
+		}
+	}
+}
