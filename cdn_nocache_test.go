@@ -84,3 +84,17 @@ func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
 	req := NewUniqueEdgeGET(t)
 	testThreeRequestsNotCached(t, req, handler)
 }
+
+// Should not cache a response with a `Vary: *` header.
+func TestNoCacheHeaderVaryAsterisk(t *testing.T) {
+	t.Skip("Not widely supported")
+
+	ResetBackends(backendsByPriority)
+
+	handler := func(h http.Header) {
+		h.Set("Vary", "*")
+	}
+
+	req := NewUniqueEdgeGET(t)
+	testThreeRequestsNotCached(t, req, handler)
+}
