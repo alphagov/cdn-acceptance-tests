@@ -115,7 +115,55 @@ func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
 // FIXME: This is not quite desired behaviour. We should not have to wait
 //				for the stale object to become available.
 func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
-	t.Skip("Not implemented")
+	ResetBackends(backendsByPriority)
+
+	const expectedBody = "going off like stilton"
+	// Allow health check to expire. Depends on window/threshold/interval.
+	const healthCheckExpire = time.Duration(15 * time.Second)
+	const respTTL = time.Duration(2 * time.Second)
+	headerValue := fmt.Sprintf("max-age=%.0f", respTTL.Seconds())
+
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer1.Name
+		t.Errorf("Server %s received request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer2.Name
+		t.Errorf("Server %s received request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+
+	req := NewUniqueEdgeGET(t)
+
+	for requestCount := 1; requestCount < 3; requestCount++ {
+		switch requestCount {
+		case 1: // Request 1 populates cache.
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", headerValue)
+				w.Write([]byte(expectedBody))
+			})
+		case 2: // Request 2 come from stale.
+			originServer.Stop()
+			time.Sleep(healthCheckExpire)
+		}
+
+		resp := RoundTripCheckError(t, req)
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bodyStr := string(body); bodyStr != expectedBody {
+			t.Errorf(
+				"Request %d received incorrect response body. Expected %q, got %q",
+				requestCount,
+				expectedBody,
+				bodyStr,
+			)
+		}
+	}
 }
 
 // Should serve stale object and not hit mirror(s) if origin returns a 5xx
