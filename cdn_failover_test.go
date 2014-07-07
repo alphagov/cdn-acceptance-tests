@@ -102,9 +102,19 @@ func TestFailoverOrigin5xxBackOff(t *testing.T) {
 	t.Skip("Not implemented")
 }
 
-// Should serve stale object and not hit mirror(s) if origin is down and
-// object is beyond TTL but still in cache.
-func TestFailoverOriginDownServeStale(t *testing.T) {
+// Should serve reponse from first mirror and replace stale object if origin
+// is down and health check has *not* expired.
+// FIXME: This is not desired behaviour. We should serve from stale
+//        immediately and not replace the stale object in cache.
+func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
+	t.Skip("Not implemented")
+}
+
+// Should serve stale object and not hit mirror(s) if origin is down, health
+// check has expired, and object is beyond TTL but still in cache.
+// FIXME: This is not quite desired behaviour. We should not have to wait
+//				for the stale object to become available.
+func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
 	t.Skip("Not implemented")
 }
 
