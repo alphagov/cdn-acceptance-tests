@@ -160,7 +160,69 @@ func TestFailoverOriginDownHealthCheckExpiredServeStale(t *testing.T) {
 // is down and health check has *not* expired.
 // FIXME: This is not desired behaviour. Should serve stale immediately.
 func TestFailoverOriginDownHealhCheckNotExpiredReplaceStale(t *testing.T) {
-	t.Skip("Not implemented")
+	ResetBackends(backendsByPriority)
+
+	const expectedBody = "going off like stilton"
+	const respTTL = time.Duration(2 * time.Second)
+	const respTTLWithBuffer = 5 * respTTL
+	headerValue := fmt.Sprintf("max-age=%.0f", respTTL.Seconds())
+
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer2.Name
+		t.Errorf("Server %s received request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+
+	req := NewUniqueEdgeGET(t)
+
+	for requestCount := 1; requestCount < 4; requestCount++ {
+		switch requestCount {
+		case 1: // Request 1 populates cache.
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", headerValue)
+				w.Write([]byte(expectedBody))
+			})
+	    backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				name := backupServer1.Name
+				t.Errorf("Server %s received request and it shouldn't have", name)
+				w.Write([]byte(name))
+	    })
+		case 2: // Request 2 come from stale.
+		  time.Sleep(respTTLWithBuffer)
+			originServer.Stop()
+	    backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte(backupServer1.Name))
+	    })
+	  case 3: // Response from Request 2 is now cached
+		 ResetBackends(backendsByPriority)
+	   originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			name :=originServer.Name
+			t.Errorf("Server %s received request and it shouldn't have", name)
+			w.Write([]byte(name))
+	   })
+	   backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			name := backupServer1.Name
+			t.Errorf("Server %s received request and it shouldn't have", name)
+			w.Write([]byte(name))
+	   })
+		}
+
+		resp := RoundTripCheckError(t, req)
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bodyStr := string(body); bodyStr != expectedBody {
+			t.Errorf(
+				"Request %d received incorrect response body. Expected %q, got %q",
+				requestCount,
+				expectedBody,
+				bodyStr,
+			)
+		}
+	}
 }
 
 // Should serve stale object and not hit mirror(s) if origin returns a 5xx
