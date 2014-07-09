@@ -97,9 +97,64 @@ func TestFailoverErrorPageAllServers5xx(t *testing.T) {
 }
 
 // Should back off requests against origin for a very short period of time
-// if origin returns a 5xx response so as not to overwhelm it.
+// (so as not to overwhelm it) if origin returns a 5xx response.
 func TestFailoverOrigin5xxBackOff(t *testing.T) {
-	t.Skip("Not implemented")
+	ResetBackends(backendsByPriority)
+
+	const expectedBody = "lucky golden ticket"
+	const expectedStatus = http.StatusOK
+
+	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(expectedBody))
+	})
+	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		name := backupServer2.Name
+		t.Errorf("Server %s received request and it shouldn't have", name)
+		w.Write([]byte(name))
+	})
+
+	req := NewUniqueEdgeGET(t)
+
+	for requestCount := 1; requestCount < 21; requestCount++ {
+		switch requestCount {
+		case 1: // Request 1 hits origin but is served from mirror1.
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				w.Write([]byte(originServer.Name))
+			})
+		case 2: // Requests 2+ are served directly from mirror1.
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				name := originServer.Name
+				t.Errorf("Server %s received request and it shouldn't have", name)
+				w.Write([]byte(name))
+			})
+		}
+
+		resp := RoundTripCheckError(t, req)
+
+		if resp.StatusCode != expectedStatus {
+			t.Errorf(
+				"Request %d received incorrect status code. Expected %d, got %d",
+				requestCount,
+				expectedStatus,
+				resp.StatusCode,
+			)
+		}
+
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bodyStr := string(body); bodyStr != expectedBody {
+			t.Errorf(
+				"Request %d received incorrect response body. Expected %q, got %q",
+				requestCount,
+				expectedBody,
+				bodyStr,
+			)
+		}
+	}
 }
 
 // Should serve stale object and not hit mirror(s) if origin is down and
