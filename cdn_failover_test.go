@@ -190,7 +190,7 @@ func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
 
 	const expectedBody = "going off like stilton"
 	// Allow health check to expire. Depends on window/threshold/interval.
-	const healthCheckExpire = time.Duration(15 * time.Second)
+	const healthCheckExpire = time.Duration(20 * time.Second)
 	const respTTL = time.Duration(2 * time.Second)
 	headerValue := fmt.Sprintf("max-age=%.0f", respTTL.Seconds())
 
