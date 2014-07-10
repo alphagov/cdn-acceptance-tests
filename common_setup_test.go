@@ -102,7 +102,7 @@ func HardCachedHostDial(network, addr string) (net.Conn, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if host == "localhost" {
+	if host != *edgeHost {
 		return net.Dial(network, addr)
 	}
 	ipAddr := CachedHostIpAddress(host)
