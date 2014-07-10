@@ -11,10 +11,10 @@ test: go-test
 clean: vagrant-destroy
 
 go-mock:
-	go test -edgeHost 172.16.20.10 -skipVerifyTLS -disableBackendTLS -test.v -run $(RUN)
+	go test -edgeHost 172.16.20.10 -skipVerifyTLS -test.v -run $(RUN)
 
 go-travis:
-	go test -edgeHost 127.0.0.1 -skipVerifyTLS -disableBackendTLS -test.v -run $(RUN)
+	go test -edgeHost 127.0.0.1 -skipVerifyTLS -test.v -run $(RUN)
 
 go-test:
 	go test -edgeHost $(HOST) -skipVerifyTLS -test.v -run $(RUN)
