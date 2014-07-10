@@ -1,8 +1,11 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -152,3 +155,120 @@ func TestHelpersCDNBackendServerTLSDisabled(t *testing.T) {
 		)
 	}
 }
+
+// CDNBackendServer should use a self-signed certificate from
+// `httptest.Server` if `TLSCerts` is empty (default).
+func TestHelpersCDNBackendServerTLSDefaultCert(t *testing.T) {
+	expectedCertDNSNames := []string{"example.com"}
+	expectedCertIPAddresses := []net.IP{
+		net.IPv4(127, 0, 0, 1).To4(),
+		net.IPv6loopback,
+	}
+
+	backend := CDNBackendServer{
+		Name: "test",
+		Port: 0,
+	}
+
+	backend.Start()
+	defer backend.Stop()
+
+	conn, err := tls.Dial(
+		"tcp",
+		backend.server.Listener.Addr().String(),
+		&tls.Config{
+			InsecureSkipVerify: true,
+		},
+	)
+	if err != nil {
+		t.Fatal("Error connecting: ", err)
+	}
+
+	cert := conn.ConnectionState().PeerCertificates[0]
+	if !reflect.DeepEqual(cert.DNSNames, expectedCertDNSNames) {
+		t.Errorf(
+			"Incorrect cert SAN DNSNames. Expected %q, got %q",
+			expectedCertDNSNames,
+			cert.DNSNames,
+		)
+	}
+	if !reflect.DeepEqual(cert.IPAddresses, expectedCertIPAddresses) {
+		t.Errorf(
+			"Incorrect cert SAN IPAddresses. Expected %q, got %q",
+			expectedCertIPAddresses,
+			cert.IPAddresses,
+		)
+	}
+}
+
+// CDNBackendServer should use custom certificate and key if `TLSCerts` is
+// passed.
+func TestHelpersCDNBackendServerTLSCustomCert(t *testing.T) {
+	expectedCertDNSNames := []string{"cdn-acceptance-tests.example.com"}
+	expectedCertIPAddresses := []net.IP{
+		net.IPv4(203, 0, 113, 10).To4(),
+	}
+
+	customCertKey, err := tls.X509KeyPair(customCert, customKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	backend := CDNBackendServer{
+		Name:     "test",
+		Port:     0,
+		TLSCerts: []tls.Certificate{customCertKey},
+	}
+
+	backend.Start()
+	defer backend.Stop()
+
+	conn, err := tls.Dial(
+		"tcp",
+		backend.server.Listener.Addr().String(),
+		&tls.Config{
+			InsecureSkipVerify: true,
+		},
+	)
+	if err != nil {
+		t.Fatal("Error connecting: ", err)
+	}
+
+	cert := conn.ConnectionState().PeerCertificates[0]
+	if !reflect.DeepEqual(cert.DNSNames, expectedCertDNSNames) {
+		t.Errorf(
+			"Incorrect cert SAN DNSNames. Expected %q, got %q",
+			expectedCertDNSNames,
+			cert.DNSNames,
+		)
+	}
+	if !reflect.DeepEqual(cert.IPAddresses, expectedCertIPAddresses) {
+		t.Errorf(
+			"Incorrect cert SAN IPAddresses. Expected %q, got %q",
+			expectedCertIPAddresses,
+			cert.IPAddresses,
+		)
+	}
+}
+
+// generated from src/pkg/crypto/tls:
+// go run generate_cert.go --rsa-bits 512 --host 203.0.113.10,cdn-acceptance-tests.example.com --ca --start-date "Jan 1 00:00:00 1970" --duration=1000000h
+var customCert = []byte(`-----BEGIN CERTIFICATE-----
+MIIBfDCCASigAwIBAgIBADALBgkqhkiG9w0BAQUwEjEQMA4GA1UEChMHQWNtZSBD
+bzAeFw03MDAxMDEwMDAwMDBaFw00OTEyMzEyMzU5NTlaMBIxEDAOBgNVBAoTB0Fj
+bWUgQ28wXDANBgkqhkiG9w0BAQEFAANLADBIAkEArfMXU/ttiLo1JIPbsprMHNmE
+DazpOAudumBLGjzgiUVrsfgH2oYlfNweinSzPYF90B2yQf/zZVLS/0x3ZKajNwID
+AQABo2swaTAOBgNVHQ8BAf8EBAMCAKQwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDwYD
+VR0TAQH/BAUwAwEB/zAxBgNVHREEKjAogiBjZG4tYWNjZXB0YW5jZS10ZXN0cy5l
+eGFtcGxlLmNvbYcEywBxCjALBgkqhkiG9w0BAQUDQQBe5lFZYSf7OAe97BkT/BKo
+Ewqkmup2sFljHPXeS1ZRTbgJSjyOnskqf4psHEbyc2YjjYtXbsid7XjM3AyfB93F
+-----END CERTIFICATE-----`)
+var customKey = []byte(`-----BEGIN RSA PRIVATE KEY-----
+MIIBOQIBAAJBAK3zF1P7bYi6NSSD27KazBzZhA2s6TgLnbpgSxo84IlFa7H4B9qG
+JXzcHop0sz2BfdAdskH/82VS0v9Md2SmozcCAwEAAQJAKto1CAJrpIBC8UDukZxi
+5kSLrJbJSX5LGAv61Hbk1cv1U6eiqPo7VkkKgjiJH5kpcwzdA1dHSuM/bhk+iqQ1
+CQIhANbZfMSxw1bDH/B4vvXD9ysjdjnlSwgVHlKnRzVT7sPbAiEAz0QxpwMy+FMD
+D5bWtz25z9MqB6sMTyBHXYSU+C0/atUCIH+kxtO1KPCrDJa5pfotavNeJidParxq
+j5FbgJrWOsxxAiBb550stVpwij6dNwFWl2RBJx1H8SywGVwLt7JmqYmpUQIgf0HJ
+YrI972WOb4pQEuKgIKMuJ/tHa99iMcmmUjbCNSI=
+-----END RSA PRIVATE KEY-----`)

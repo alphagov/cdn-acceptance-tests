@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -19,6 +20,7 @@ type CDNBackendServer struct {
 	Name        string
 	Port        int
 	TLSDisabled bool
+	TLSCerts    []tls.Certificate
 	handler     func(w http.ResponseWriter, r *http.Request)
 	server      *httptest.Server
 }
@@ -78,6 +80,11 @@ func (s *CDNBackendServer) Start() {
 	if s.TLSDisabled {
 		s.server.Start()
 	} else {
+		if len(s.TLSCerts) > 0 {
+			s.server.TLS = &tls.Config{
+				Certificates: s.TLSCerts,
+			}
+		}
 		s.server.StartTLS()
 	}
 
