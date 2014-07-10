@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -94,5 +95,60 @@ func TestHelpersCDNServeStop(t *testing.T) {
 	re := regexp.MustCompile(`EOF`)
 	if !re.MatchString(fmt.Sprintf("%s", err)) {
 		t.Errorf("Connection error %q is not as expected", err)
+	}
+}
+
+// CDNBackendServer should use TLS by default as evidenced by an HTTPS URL
+// from `httptest.Server`.
+func TestHelpersCDNBackendServerTLSEnabled(t *testing.T) {
+	const disableTLS = false
+	const expectedURLPrefix = "https://"
+
+	backend := CDNBackendServer{
+		Name: "test",
+		Port: 0,
+	}
+
+	if backend.TLSDisabled != disableTLS {
+		t.Errorf(
+			"TLSDisabled should not be enabled by default. Expected %t, got %t",
+			disableTLS,
+			backend.TLSDisabled,
+		)
+	}
+
+	backend.Start()
+	defer backend.Stop()
+
+	if url := backend.server.URL; !strings.HasPrefix(url, expectedURLPrefix) {
+		t.Errorf(
+			"Expected backend URL to begin with %q, got %q",
+			expectedURLPrefix,
+			url,
+		)
+	}
+}
+
+// CDNBackendServer should disable TLS if passed `TLSDisabled: true`, as
+// evidenced by an HTTP URL from `httptest.Server`.
+func TestHelpersCDNBackendServerTLSDisabled(t *testing.T) {
+	const disableTLS = true
+	const expectedURLPrefix = "http://"
+
+	backend := CDNBackendServer{
+		Name:        "test",
+		Port:        0,
+		TLSDisabled: disableTLS,
+	}
+
+	backend.Start()
+	defer backend.Stop()
+
+	if url := backend.server.URL; !strings.HasPrefix(url, expectedURLPrefix) {
+		t.Errorf(
+			"Expected backend URL to begin with %q, got %q",
+			expectedURLPrefix,
+			url,
+		)
 	}
 }

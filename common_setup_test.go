@@ -12,11 +12,12 @@ import (
 )
 
 var (
-	edgeHost      = flag.String("edgeHost", "", "Hostname of edge")
-	originPort    = flag.Int("originPort", 8080, "Origin port to listen on for requests")
-	backupPort1   = flag.Int("backupPort1", 8081, "Backup1 port to listen on for requests")
-	backupPort2   = flag.Int("backupPort2", 8082, "Backup2 port to listen on for requests")
-	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
+	edgeHost          = flag.String("edgeHost", "", "Hostname of edge")
+	originPort        = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+	backupPort1       = flag.Int("backupPort1", 8081, "Backup1 port to listen on for requests")
+	backupPort2       = flag.Int("backupPort2", 8082, "Backup2 port to listen on for requests")
+	skipVerifyTLS     = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
+	disableBackendTLS = flag.Bool("disableBackendTLS", false, "Disable TLS on backends")
 )
 
 // These consts and vars are available to all tests.
@@ -55,16 +56,19 @@ func init() {
 	}
 
 	originServer = &CDNBackendServer{
-		Name: "origin",
-		Port: *originPort,
+		Name:        "origin",
+		Port:        *originPort,
+		TLSDisabled: *disableBackendTLS,
 	}
 	backupServer1 = &CDNBackendServer{
-		Name: "backup1",
-		Port: *backupPort1,
+		Name:        "backup1",
+		Port:        *backupPort1,
+		TLSDisabled: *disableBackendTLS,
 	}
 	backupServer2 = &CDNBackendServer{
-		Name: "backup2",
-		Port: *backupPort2,
+		Name:        "backup2",
+		Port:        *backupPort2,
+		TLSDisabled: *disableBackendTLS,
 	}
 
 	backendsByPriority = []*CDNBackendServer{
