@@ -13,7 +13,7 @@ import (
 func TestHelpersCDNBackendServerHandlers(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	url := fmt.Sprintf("http://localhost:%d/foo", originServer.Port)
+	url := originServer.server.URL + "/" + NewUUID()
 	req, _ := http.NewRequest("GET", url, nil)
 	resp := RoundTripCheckError(t, req)
 
@@ -42,7 +42,7 @@ func TestHelpersCDNBackendServerProbes(t *testing.T) {
 		t.Error("HEAD request incorrectly served by CDNBackendServer.handler")
 	})
 
-	url := fmt.Sprintf("http://localhost:%d/", originServer.Port)
+	url := originServer.server.URL + "/"
 	req, _ := http.NewRequest("HEAD", url, nil)
 	resp := RoundTripCheckError(t, req)
 
@@ -65,7 +65,7 @@ func TestHelpersCDNServeStop(t *testing.T) {
 		)
 	}
 
-	url := fmt.Sprintf("http://localhost:%d/foo", originServer.Port)
+	url := originServer.server.URL + "/" + NewUUID()
 	req, _ := http.NewRequest("GET", url, nil)
 
 	resp, err := client.RoundTrip(req)
