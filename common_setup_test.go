@@ -18,6 +18,8 @@ var (
 	backupPort2   = flag.Int("backupPort2", 8082, "Backup2 port to listen on for requests")
 	skipFailover  = flag.Bool("skipFailover", false, "Skip failover tests and only setup the origin backend")
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
+	backendCert   = flag.String("backendCert", "", "Override self-signed cert for backend TLS")
+	backendKey    = flag.String("backendKey", "", "Override self-signed cert, must be provided with -backendCert")
 )
 
 // These consts and vars are available to all tests.
@@ -56,9 +58,21 @@ func init() {
 		Dial:                  HardCachedHostDial,
 	}
 
+	var backendCerts []tls.Certificate
+	if *backendCert != "" || *backendKey != "" {
+		var err error
+		backendCerts = make([]tls.Certificate, 1)
+		backendCerts[0], err = tls.LoadX509KeyPair(*backendCert, *backendKey)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	originServer = &CDNBackendServer{
-		Name: "origin",
-		Port: *originPort,
+		Name:     "origin",
+		Port:     *originPort,
+		TLSCerts: backendCerts,
 	}
 	backendsByPriority = []*CDNBackendServer{
 		originServer,
@@ -66,12 +80,14 @@ func init() {
 
 	if !*skipFailover {
 		backupServer1 = &CDNBackendServer{
-			Name: "backup1",
-			Port: *backupPort1,
+			Name:     "backup1",
+			Port:     *backupPort1,
+			TLSCerts: backendCerts,
 		}
 		backupServer2 = &CDNBackendServer{
-			Name: "backup2",
-			Port: *backupPort2,
+			Name:     "backup2",
+			Port:     *backupPort2,
+			TLSCerts: backendCerts,
 		}
 		backendsByPriority = append(
 			backendsByPriority,

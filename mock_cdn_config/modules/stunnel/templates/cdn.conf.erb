@@ -1,0 +1,17 @@
+cert = /etc/ssl/certs/ssl-cert-snakeoil.pem
+key = /etc/ssl/private/ssl-cert-snakeoil.key
+
+[cdn-origin]
+client = yes
+accept = 127.0.0.1:8090
+connect = <%= @varnish_backend_address -%>:8080
+
+[cdn-backup1]
+client = yes
+accept = 127.0.0.1:8091
+connect = <%= @varnish_backend_address -%>:8081
+
+[cdn-backup2]
+client = yes
+accept = 127.0.0.1:8092
+connect = <%= @varnish_backend_address -%>:8082

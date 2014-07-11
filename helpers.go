@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,10 +17,11 @@ import (
 // CDNBackendServer is a backend server which will receive and respond to
 // requests from the CDN.
 type CDNBackendServer struct {
-	Name    string
-	Port    int
-	handler func(w http.ResponseWriter, r *http.Request)
-	server  *httptest.Server
+	Name     string
+	Port     int
+	TLSCerts []tls.Certificate
+	handler  func(w http.ResponseWriter, r *http.Request)
+	server   *httptest.Server
 }
 
 // ServeHTTP satisfies the http.HandlerFunc interface. Health check requests
@@ -74,8 +76,14 @@ func (s *CDNBackendServer) Start() {
 
 	s.server = httptest.NewUnstartedServer(s)
 	s.server.Listener = ln
-	s.server.Start()
 
+	if len(s.TLSCerts) > 0 {
+		s.server.TLS = &tls.Config{
+			Certificates: s.TLSCerts,
+		}
+	}
+
+	s.server.StartTLS()
 	log.Printf("Started server on port %d", s.Port)
 }
 
