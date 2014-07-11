@@ -16,6 +16,7 @@ var (
 	originPort    = flag.Int("originPort", 8080, "Origin port to listen on for requests")
 	backupPort1   = flag.Int("backupPort1", 8081, "Backup1 port to listen on for requests")
 	backupPort2   = flag.Int("backupPort2", 8082, "Backup2 port to listen on for requests")
+	skipFailover  = flag.Bool("skipFailover", false, "Skip failover tests and only setup the origin backend")
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 )
 
@@ -58,19 +59,24 @@ func init() {
 		Name: "origin",
 		Port: *originPort,
 	}
-	backupServer1 = &CDNBackendServer{
-		Name: "backup1",
-		Port: *backupPort1,
-	}
-	backupServer2 = &CDNBackendServer{
-		Name: "backup2",
-		Port: *backupPort2,
-	}
-
 	backendsByPriority = []*CDNBackendServer{
 		originServer,
-		backupServer1,
-		backupServer2,
+	}
+
+	if !*skipFailover {
+		backupServer1 = &CDNBackendServer{
+			Name: "backup1",
+			Port: *backupPort1,
+		}
+		backupServer2 = &CDNBackendServer{
+			Name: "backup2",
+			Port: *backupPort2,
+		}
+		backendsByPriority = append(
+			backendsByPriority,
+			backupServer1,
+			backupServer2,
+		)
 	}
 
 	log.Println("Confirming that CDN is healthy")
