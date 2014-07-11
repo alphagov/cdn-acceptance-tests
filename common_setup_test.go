@@ -22,6 +22,7 @@ var (
 
 // These consts and vars are available to all tests.
 const requestTimeout = time.Second * 5
+const requestSlowThreshold = time.Second
 
 var (
 	client             *http.Transport
