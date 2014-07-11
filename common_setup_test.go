@@ -16,6 +16,7 @@ var (
 	originPort    = flag.Int("originPort", 8080, "Origin port to listen on for requests")
 	backupPort1   = flag.Int("backupPort1", 8081, "Backup1 port to listen on for requests")
 	backupPort2   = flag.Int("backupPort2", 8082, "Backup2 port to listen on for requests")
+	skipFailover  = flag.Bool("skipFailover", false, "Skip failover tests and only setup the origin backend")
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 	backendCert   = flag.String("backendCert", "", "Override self-signed cert for backend TLS")
 	backendKey    = flag.String("backendKey", "", "Override self-signed cert, must be provided with -backendCert")
@@ -23,6 +24,7 @@ var (
 
 // These consts and vars are available to all tests.
 const requestTimeout = time.Second * 5
+const requestSlowThreshold = time.Second
 
 var (
 	client             *http.Transport
@@ -72,21 +74,26 @@ func init() {
 		Port:     *originPort,
 		TLSCerts: backendCerts,
 	}
-	backupServer1 = &CDNBackendServer{
-		Name:     "backup1",
-		Port:     *backupPort1,
-		TLSCerts: backendCerts,
-	}
-	backupServer2 = &CDNBackendServer{
-		Name:     "backup2",
-		Port:     *backupPort2,
-		TLSCerts: backendCerts,
-	}
-
 	backendsByPriority = []*CDNBackendServer{
 		originServer,
-		backupServer1,
-		backupServer2,
+	}
+
+	if !*skipFailover {
+		backupServer1 = &CDNBackendServer{
+			Name:     "backup1",
+			Port:     *backupPort1,
+			TLSCerts: backendCerts,
+		}
+		backupServer2 = &CDNBackendServer{
+			Name:     "backup2",
+			Port:     *backupPort2,
+			TLSCerts: backendCerts,
+		}
+		backendsByPriority = append(
+			backendsByPriority,
+			backupServer1,
+			backupServer2,
+		)
 	}
 
 	log.Println("Confirming that CDN is healthy")

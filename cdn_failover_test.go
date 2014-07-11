@@ -9,11 +9,20 @@ import (
 	"time"
 )
 
+// checkForSkipFailover skips the calling test if the skipFailover flag has
+// been set.
+func checkForSkipFailover(t *testing.T) {
+	if *skipFailover {
+		t.Skip("Failover tests disabled")
+	}
+}
+
 // Should serve a known static error page if all backend servers are down
 // and object isn't in cache/stale.
 // NB: ideally this should be a page that we control that has a mechanism
 //     to alert us that it has been served.
 func TestFailoverErrorPageAllServersDown(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	const expectedStatusCode = http.StatusServiceUnavailable
@@ -52,6 +61,7 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 // Should return the 5xx response from the last backup server if all
 // preceeding servers also return a 5xx response.
 func TestFailoverErrorPageAllServers5xx(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	const expectedStatusCode = http.StatusServiceUnavailable
@@ -99,6 +109,7 @@ func TestFailoverErrorPageAllServers5xx(t *testing.T) {
 // Should back off requests against origin for a very short period of time
 // (so as not to overwhelm it) if origin returns a 5xx response.
 func TestFailoverOrigin5xxBackOff(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	const expectedBody = "lucky golden ticket"
@@ -162,6 +173,7 @@ func TestFailoverOrigin5xxBackOff(t *testing.T) {
 // FIXME: This is not desired behaviour. We should serve from stale
 //        immediately and not replace the stale object in cache.
 func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	const expectedResponseStale = "going off like stilton"
@@ -241,6 +253,7 @@ func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
 // FIXME: This is not quite desired behaviour. We should not have to wait
 //				for the stale object to become available.
 func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	const expectedBody = "going off like stilton"
@@ -295,6 +308,7 @@ func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
 // Should serve stale object and not hit mirror(s) if origin returns a 5xx
 // response and object is beyond TTL but still in cache.
 func TestFailoverOrigin5xxServeStale(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	const expectedResponseStale = "going off like stilton"
@@ -367,6 +381,7 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 // Should fallback to first mirror if origin is down and object is not in
 // cache (active or stale).
 func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	expectedBody := "lucky golden ticket"
@@ -410,6 +425,7 @@ func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
 // Should fallback to first mirror if origin returns 5xx response and object
 // is not in cache (active or stale).
 func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	expectedBody := "lucky golden ticket"
@@ -470,6 +486,7 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 // Should fallback to second mirror if both origin and first mirror are
 // down.
 func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	expectedBody := "lucky golden ticket"
@@ -509,6 +526,7 @@ func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
 // Should fallback to second mirror if both origin and first mirror return
 // 5xx responses.
 func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	expectedBody := "lucky golden ticket"
@@ -575,6 +593,7 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 // No-Fallback header. In order to allow applications to present their own
 // error pages.
 func TestFailoverNoFallbackHeader(t *testing.T) {
+	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	const headerName = "No-Fallback"
