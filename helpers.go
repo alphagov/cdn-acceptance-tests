@@ -107,7 +107,10 @@ func NewUniqueEdgeURL() string {
 	url := url.URL{
 		Scheme: "https",
 		Host:   *edgeHost,
-		Path:   fmt.Sprintf("/?nocache=%s", NewUUID()),
+		Path:   "/",
+		RawQuery: url.Values{
+			"nocache": []string{NewUUID()},
+		}.Encode(),
 	}
 
 	return url.String()
