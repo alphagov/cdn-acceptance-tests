@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -129,6 +130,119 @@ func TestCacheVary(t *testing.T) {
 					"Request received wrong %q header. Expected %q, got %q",
 					respHeaderName,
 					headerVal,
+					recVal,
+				)
+			}
+		}
+	}
+}
+
+// Should cache distinct responses for requests with the same path but
+// different query params.
+func TestCacheUniqueQueryParams(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	const respHeaderName = "Request-RawQuery"
+
+	req1 := NewUniqueEdgeGET(t)
+	req2 := NewUniqueEdgeGET(t)
+
+	if req1.URL.Path != req2.URL.Path {
+		t.Fatalf(
+			"Request paths do not match. Expected %q, got %q",
+			req1.URL.Path,
+			req2.URL.Path,
+		)
+	}
+	if req1.URL.RawQuery == req2.URL.RawQuery {
+		t.Fatalf(
+			"Request query params do not differ. Expected %q != %q",
+			req1.URL.RawQuery,
+			req2.URL.RawQuery,
+		)
+	}
+
+	for _, populateCache := range []bool{true, false} {
+		for _, req := range []*http.Request{req1, req2} {
+			if populateCache {
+				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set(respHeaderName, r.URL.RawQuery)
+				})
+			} else {
+				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+					t.Errorf(
+						"Request with query param %q should not have made it to origin",
+						r.URL.RawQuery,
+					)
+				})
+			}
+
+			resp := RoundTripCheckError(t, req)
+
+			if recVal := resp.Header.Get(respHeaderName); recVal != req.URL.RawQuery {
+				t.Errorf(
+					"Request received wrong %q header. Expected %q, got %q",
+					respHeaderName,
+					req.URL.RawQuery,
+					recVal,
+				)
+			}
+		}
+	}
+}
+
+// Should cache distinct responses for requests with the same query params
+// but paths of different case-sensitivity.
+func TestCacheUniqueCaseSensitive(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	const reqPath = "/CaseSensitive"
+	const respHeaderName = "Request-Path"
+
+	req1 := NewUniqueEdgeGET(t)
+	req2 := NewUniqueEdgeGET(t)
+
+	req1.URL.Path = strings.ToLower(reqPath)
+	req2.URL.Path = strings.ToUpper(reqPath)
+	req1.URL.RawQuery = req2.URL.RawQuery
+
+	if req1.URL.Path == req2.URL.Path {
+		t.Fatalf(
+			"Request paths do not differ. Expected %q != %q",
+			req1.URL.Path,
+			req2.URL.Path,
+		)
+	}
+	if req1.URL.RawQuery != req2.URL.RawQuery {
+		t.Fatalf(
+			"Request query params do not match. Expected %q, got %q",
+			req1.URL.RawQuery,
+			req2.URL.RawQuery,
+		)
+	}
+
+	for _, populateCache := range []bool{true, false} {
+		for _, req := range []*http.Request{req1, req2} {
+			if populateCache {
+				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set(respHeaderName, r.URL.Path)
+				})
+			} else {
+				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+					t.Errorf(
+						"Request with path %q should not have made it to origin",
+						r.URL.Path,
+					)
+				})
+			}
+
+			resp := RoundTripCheckError(t, req)
+
+			if recVal := resp.Header.Get(respHeaderName); recVal != req.URL.Path {
+				t.Errorf(
+					"Request received wrong %q header. Expected %q, got %q",
+					respHeaderName,
+					req.URL.Path,
 					recVal,
 				)
 			}
