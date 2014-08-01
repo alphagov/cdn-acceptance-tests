@@ -1,31 +1,53 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
 )
 
-// Should redirect from HTTP to HTTPS without hitting origin.
+// Should redirect from HTTP to HTTPS without hitting origin, whilst
+// preserving path and query params.
 func TestMiscProtocolRedirect(t *testing.T) {
 	ResetBackends(backendsByPriority)
+
+	const reqPath = "/one/two"
+	const reqProto = "http"
+	const expectedProto = "https"
+	const expectedStatus = http.StatusMovedPermanently
+	const headerName = "Location"
+	var expectedURL string
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("Request should not have made it to origin")
 	})
 
-	sourceUrl := fmt.Sprintf("http://%s/foo/bar", *edgeHost)
-	destUrl := fmt.Sprintf("https://%s/foo/bar", *edgeHost)
+	req := NewUniqueEdgeGET(t)
+	req.URL.Path = reqPath
+	req.URL.Scheme = reqProto
 
-	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	if len(req.URL.RawQuery) == 0 {
+		t.Fatal("Request must have query params to test preservation")
+	}
+
 	resp := RoundTripCheckError(t, req)
 
-	if resp.StatusCode != 301 {
-		t.Errorf("Status code expected 301, got %d", resp.StatusCode)
+	req.URL.Scheme = expectedProto
+	expectedURL = req.URL.String()
+
+	if resp.StatusCode != expectedStatus {
+		t.Errorf(
+			"Received incorrect status code. Expected %d, got %d",
+			expectedStatus,
+			resp.StatusCode,
+		)
 	}
-	if d := resp.Header.Get("Location"); d != destUrl {
-		t.Errorf("Location header expected %s, got %s", destUrl, d)
+	if dest := resp.Header.Get(headerName); dest != expectedURL {
+		t.Errorf(
+			"Received incorrect %q header. Expected %q, got %q",
+			expectedURL,
+			dest,
+		)
 	}
 }
 
