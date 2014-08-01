@@ -201,17 +201,22 @@ func waitForBackend(expectedBackendName string) error {
 	for try := 0; try <= maxRetries; try++ {
 		url = NewUniqueEdgeURL()
 		req, _ := http.NewRequest("GET", url, nil)
+
 		resp, err := client.RoundTrip(req)
 		if err != nil {
 			return err
 		}
+		resp.Body.Close()
+
 		if resp.Header.Get("Backend-Name") == expectedBackendName {
 			if try != 0 {
 				time.Sleep(waitForCdnProbeToPropagate)
 			}
+
 			log.Println(expectedBackendName + " is up!")
 			return nil // all is well!
 		}
+
 		time.Sleep(timeBetweenAttempts)
 	}
 
@@ -281,8 +286,8 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 		}
 
 		resp := RoundTripCheckError(t, req)
-
 		defer resp.Body.Close()
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -337,8 +342,8 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 
 	for _, expectedBody := range responseBodies {
 		resp := RoundTripCheckError(t, req)
-
 		defer resp.Body.Close()
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatal(err)

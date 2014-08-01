@@ -37,6 +37,7 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatusCode {
 		t.Errorf(
@@ -46,7 +47,6 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 		)
 	}
 
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -85,6 +85,7 @@ func TestFailoverErrorPageAllServers5xx(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatusCode {
 		t.Errorf(
@@ -94,7 +95,6 @@ func TestFailoverErrorPageAllServers5xx(t *testing.T) {
 		)
 	}
 
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -145,6 +145,7 @@ func TestFailoverOrigin5xxBackOff(t *testing.T) {
 		}
 
 		resp := RoundTripCheckError(t, req)
+		defer resp.Body.Close()
 
 		if resp.StatusCode != expectedStatus {
 			t.Errorf(
@@ -155,7 +156,6 @@ func TestFailoverOrigin5xxBackOff(t *testing.T) {
 			)
 		}
 
-		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -234,8 +234,8 @@ func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
 		}
 
 		resp := RoundTripCheckError(t, req)
-
 		defer resp.Body.Close()
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -291,8 +291,8 @@ func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
 		}
 
 		resp := RoundTripCheckError(t, req)
-
 		defer resp.Body.Close()
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -364,8 +364,8 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 		}
 
 		resp := RoundTripCheckError(t, req)
-
 		defer resp.Body.Close()
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -402,6 +402,7 @@ func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
 		t.Errorf(
@@ -411,7 +412,6 @@ func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
 		)
 	}
 
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -463,6 +463,7 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
 		t.Errorf(
@@ -472,7 +473,6 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 		)
 	}
 
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -503,6 +503,7 @@ func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
 		t.Errorf(
@@ -512,7 +513,6 @@ func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
 		)
 	}
 
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -569,6 +569,7 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
 		t.Errorf(
@@ -578,7 +579,6 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 		)
 	}
 
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -621,6 +621,7 @@ func TestFailoverNoFallbackHeader(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != expectedStatus {
 		t.Errorf(
@@ -630,7 +631,6 @@ func TestFailoverNoFallbackHeader(t *testing.T) {
 		)
 	}
 
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)

@@ -124,6 +124,7 @@ func TestCacheVary(t *testing.T) {
 
 			req.Header.Set(reqHeaderName, headerVal)
 			resp := RoundTripCheckError(t, req)
+			defer resp.Body.Close()
 
 			if recVal := resp.Header.Get(respHeaderName); recVal != headerVal {
 				t.Errorf(
@@ -178,6 +179,7 @@ func TestCacheUniqueQueryParams(t *testing.T) {
 			}
 
 			resp := RoundTripCheckError(t, req)
+			defer resp.Body.Close()
 
 			if recVal := resp.Header.Get(respHeaderName); recVal != req.URL.RawQuery {
 				t.Errorf(
@@ -237,6 +239,7 @@ func TestCacheUniqueCaseSensitive(t *testing.T) {
 			}
 
 			resp := RoundTripCheckError(t, req)
+			defer resp.Body.Close()
 
 			if recVal := resp.Header.Get(respHeaderName); recVal != req.URL.Path {
 				t.Errorf(

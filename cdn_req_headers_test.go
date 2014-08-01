@@ -24,7 +24,8 @@ func TestReqHeaderXFFCreateAndAppend(t *testing.T) {
 
 	// First request with no existing XFF.
 	req := NewUniqueEdgeGET(t)
-	_ = RoundTripCheckError(t, req)
+	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if receivedHeaderVal == "" {
 		t.Fatalf("Origin didn't receive request with %q header", headerName)
@@ -45,7 +46,9 @@ func TestReqHeaderXFFCreateAndAppend(t *testing.T) {
 	// Second request with existing XFF.
 	req = NewUniqueEdgeGET(t)
 	req.Header.Set(headerName, sentHeaderVal)
-	_ = RoundTripCheckError(t, req)
+
+	resp = RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if receivedHeaderVal != expectedHeaderVal {
 		t.Errorf(
@@ -73,7 +76,9 @@ func TestReqHeaderUnspoofableClientIP(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	req.Header.Set(headerName, sentHeaderVal)
-	_ = RoundTripCheckError(t, req)
+
+	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	receivedHeaderIP := net.ParseIP(receivedHeaderVal)
 	if receivedHeaderIP == nil {
@@ -106,7 +111,8 @@ func TestReqHeaderHostUnmodified(t *testing.T) {
 		)
 	}
 
-	_ = RoundTripCheckError(t, req)
+	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if receivedHeaderVal != sentHeaderVal {
 		t.Errorf(
