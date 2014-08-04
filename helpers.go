@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -347,4 +348,14 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 			t.Errorf("Incorrect response body. Expected %q, got %q", expectedBody, receivedBody)
 		}
 	}
+}
+
+func stringContainsOneOf(haystack string, needles []string) bool {
+	for _, needle := range needles {
+		if strings.Contains(haystack, needle) {
+			return true
+		}
+	}
+
+	return false
 }

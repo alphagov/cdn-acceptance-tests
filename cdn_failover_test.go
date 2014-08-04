@@ -26,7 +26,10 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const expectedStatusCode = http.StatusServiceUnavailable
-	const expectedBody = "Guru Meditation"
+
+	const expectedBodyFastly = "Guru Mediation"
+	const expectedBodyVarnish = "Guru Meditation"
+	expectedBodies := []string{expectedBodyFastly, expectedBodyVarnish}
 
 	originServer.Stop()
 	backupServer1.Stop()
@@ -49,10 +52,10 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if bodyStr := string(body); !strings.Contains(bodyStr, expectedBody) {
+	if bodyStr := string(body); !stringContainsOneOf(bodyStr, expectedBodies) {
 		t.Errorf(
-			"Received incorrect response body. Expected to contain %q, got %q",
-			expectedBody,
+			"Received incorrect response body. Expected to contain one of %q, got %q",
+			strings.Join(expectedBodies, ", "),
 			bodyStr,
 		)
 	}
