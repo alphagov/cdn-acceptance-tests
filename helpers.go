@@ -258,9 +258,9 @@ func waitForBackend(expectedBackendName string) error {
 	const waitForCdnProbeToPropagate = time.Duration(5 * time.Second)
 	const timeBetweenAttempts = time.Duration(2 * time.Second)
 
-	var url string
-
 	log.Printf("Checking health of %s...", expectedBackendName)
+
+	var url string
 	for try := 0; try <= maxRetries; try++ {
 		url = NewUniqueEdgeURL()
 		req, _ := http.NewRequest("GET", url, nil)
@@ -288,7 +288,6 @@ func waitForBackend(expectedBackendName string) error {
 		expectedBackendName,
 		maxRetries,
 	)
-
 }
 
 // Callback function to modify complete response.
