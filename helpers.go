@@ -35,6 +35,12 @@ type CDNBackendServer struct {
 func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Backend-Name", s.Name)
 	if r.Method == "HEAD" && r.URL.Path == "/" {
+		/*
+		if s.Name == "origin" {
+			log.Printf("origin served probe for %s", r.RemoteAddr)
+		}
+		*/
+
 		w.Header().Set("PING", "PONG")
 		return
 	}
@@ -199,6 +205,7 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 	resp, err := client.RoundTrip(req)
 	if duration := time.Since(start); duration > requestSlowThreshold {
 		t.Error("Slow request, took:", duration)
+		t.Errorf("%#v", resp)
 	}
 	if *debugResp {
 		t.Logf("%#v", resp)
@@ -259,7 +266,7 @@ func waitForBackend(expectedBackendName string) error {
 	const timeBetweenAttempts = time.Duration(2 * time.Second)
 
 	log.Printf("Checking health of %s...", expectedBackendName)
-
+	start := time.Now()
 	var url string
 	for try := 0; try <= maxRetries; try++ {
 		url = NewUniqueEdgeURL()
@@ -277,7 +284,8 @@ func waitForBackend(expectedBackendName string) error {
 				time.Sleep(waitForCdnProbeToPropagate)
 			}
 
-			log.Println(expectedBackendName + " is up!")
+			duration := time.Since(start)
+			log.Printf("%s is up! took %s", expectedBackendName, duration)
 			return nil // all is well!
 		}
 
