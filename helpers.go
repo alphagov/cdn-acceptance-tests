@@ -267,7 +267,8 @@ func waitForBackend(expectedBackendName string) error {
 
 		resp, err := client.RoundTrip(req)
 		if err != nil {
-			return err
+			log.Println("Request error:", err)
+			continue
 		}
 		resp.Body.Close()
 
