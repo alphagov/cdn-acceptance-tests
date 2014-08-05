@@ -84,13 +84,17 @@ func (s *CDNBackendServer) Start() {
 	s.server = httptest.NewUnstartedServer(s)
 	s.server.Listener = ln
 
-	if len(s.TLSCerts) > 0 {
-		s.server.TLS = &tls.Config{
-			Certificates: s.TLSCerts,
+	if *skipTLS {
+		s.server.Start()
+	} else {
+		if len(s.TLSCerts) > 0 {
+			s.server.TLS = &tls.Config{
+				Certificates: s.TLSCerts,
+			}
 		}
-	}
 
-	s.server.StartTLS()
+		s.server.StartTLS()
+	}
 	log.Printf("Started server on port %d", s.Port)
 }
 

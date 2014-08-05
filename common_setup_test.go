@@ -18,6 +18,7 @@ var (
 	backupPort2   = flag.Int("backupPort2", 8082, "Backup2 port to listen on for requests")
 	skipFailover  = flag.Bool("skipFailover", false, "Skip failover tests and only setup the origin backend")
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
+	skipTLS       = flag.Bool("skipTLS", false, "Hack to disable TLS backends")
 	backendCert   = flag.String("backendCert", "", "Override self-signed cert for backend TLS")
 	backendKey    = flag.String("backendKey", "", "Override self-signed cert, must be provided with -backendCert")
 )
