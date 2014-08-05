@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -73,6 +74,12 @@ func (s *CDNBackendServer) Start() {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// Store the port randomly assigned by the kernel if we started with 0.
+	if s.Port == 0 {
+		_, portStr, _ := net.SplitHostPort(ln.Addr().String())
+		s.Port, _ = strconv.Atoi(portStr)
 	}
 
 	s.server = httptest.NewUnstartedServer(s)
