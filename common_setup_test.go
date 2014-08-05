@@ -101,7 +101,7 @@ func init() {
 
 }
 
-// CacheHostIpAddress looks up the IP address for a given host name,
+// CachedHostIpAddress looks up the IP address for a given host name,
 // and caches the first IP address returned. Subsequent requests always
 // return this address, preventing further DNS requests.
 func CachedHostIpAddress(host string) string {
@@ -116,7 +116,7 @@ func CachedHostIpAddress(host string) string {
 }
 
 // HardCachedHostDial acts as a replacement Dial function, ostensibly for
-// http.Transport. It uses the IP address returned by CachedHostIpAddresss
+// http.Transport. It uses the IP address returned by CachedHostIpAddress
 // and passes that to the stock net.Dial function, to prevent repeat DNS
 // lookups of the provided hostname in addr. This is to prevent us from switching
 // from one CDN location to another mid-test.
