@@ -79,6 +79,18 @@ func TestCacheCacheControlNoCache(t *testing.T) {
 	testRequestsCachedIndefinite(t, handler)
 }
 
+// Should cache responses with a `Cache-Control: no-store` header. Varnish
+// doesn't respect this by default.
+func TestCacheCacheControlNoStore(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	handler := func(w http.ResponseWriter) {
+		w.Header().Set("Cache-Control", "no-store")
+	}
+
+	testRequestsCachedIndefinite(t, handler)
+}
+
 // Should cache responses with a status code of 404. It's a common
 // misconception that 404 responses shouldn't be cached; they should because
 // they can be expensive to generate.
