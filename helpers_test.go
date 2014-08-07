@@ -108,6 +108,42 @@ func TestHelpersCDNServeStop(t *testing.T) {
 	}
 }
 
+// CDNBackendServer should assign a random port when started for the first
+// time with a port of 0. Subsequent starts should retain the assigned port
+// from the first start.
+func TestHelpersCDNBackendServerRandomPort(t *testing.T) {
+	const initialPort = 0
+	var assignedPort int
+
+	backend := CDNBackendServer{
+		Name: "test",
+		Port: initialPort,
+	}
+
+	backend.Start()
+	defer backend.Stop()
+
+	assignedPort = backend.Port
+	if assignedPort == initialPort {
+		t.Errorf(
+			"Expected backend port != %d, got %d",
+			initialPort,
+			assignedPort,
+		)
+	}
+
+	backend.Stop()
+	backend.Start()
+
+	if backend.Port != assignedPort {
+		t.Errorf(
+			"Expected backend port == %d, got %d",
+			backend.Port,
+			assignedPort,
+		)
+	}
+}
+
 // CDNBackendServer should use TLS by default as evidenced by an HTTPS URL
 // from `httptest.Server`.
 func TestHelpersCDNBackendServerTLSEnabled(t *testing.T) {
