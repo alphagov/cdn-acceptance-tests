@@ -22,6 +22,7 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		t.Errorf("Status code expected 200, got %d", resp.StatusCode)

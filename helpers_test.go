@@ -20,6 +20,7 @@ func TestHelpersCDNBackendServerHandlers(t *testing.T) {
 	url := originServer.server.URL + "/" + NewUUID()
 	req, _ := http.NewRequest("GET", url, nil)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		t.Error("First request to default handler failed")
@@ -31,6 +32,8 @@ func TestHelpersCDNBackendServerHandlers(t *testing.T) {
 		})
 
 		resp := RoundTripCheckError(t, req)
+		defer resp.Body.Close()
+
 		if resp.StatusCode != statusCode {
 			t.Errorf("SwitchHandler didn't work. Got %d, expected %d", resp.StatusCode, statusCode)
 		}
@@ -49,6 +52,7 @@ func TestHelpersCDNBackendServerProbes(t *testing.T) {
 	url := originServer.server.URL + "/"
 	req, _ := http.NewRequest("HEAD", url, nil)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 || resp.Header.Get("PING") != "PONG" {
 		t.Error("HEAD request for '/' served incorrectly")
@@ -76,6 +80,8 @@ func TestHelpersCDNServeStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		t.Error("originServer should be up and responding, prior to Stop operation")
 	}
@@ -92,6 +98,7 @@ func TestHelpersCDNServeStop(t *testing.T) {
 
 	resp, err = client.RoundTrip(req)
 	if err == nil {
+		defer resp.Body.Close()
 		t.Error("Client connection succeeded. The server should be refusing requests by now.")
 	}
 

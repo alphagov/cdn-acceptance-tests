@@ -31,6 +31,7 @@ func TestMiscProtocolRedirect(t *testing.T) {
 	}
 
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	req.URL.Scheme = expectedProto
 	expectedURL = req.URL.String()
@@ -87,6 +88,7 @@ func TestMiscRestrictPurgeRequests(t *testing.T) {
 		}
 
 		resp := RoundTripCheckError(t, req)
+		defer resp.Body.Close()
 
 		if resp.StatusCode != expectedStatus {
 			t.Errorf(
@@ -98,7 +100,6 @@ func TestMiscRestrictPurgeRequests(t *testing.T) {
 		}
 
 		if expectedBody != "" {
-			defer resp.Body.Close()
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				t.Fatal(err)

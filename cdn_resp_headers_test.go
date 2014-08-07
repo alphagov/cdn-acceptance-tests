@@ -35,6 +35,7 @@ func TestRespHeaderAge(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		t.Fatalf("Edge returned an unexpected status: %q", resp.Status)
@@ -43,6 +44,7 @@ func TestRespHeaderAge(t *testing.T) {
 	// wait a little bit. Edge should update the Age header, we know Origin will not
 	time.Sleep(time.Duration(secondsToWaitBetweenRequests) * time.Second)
 	resp = RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		t.Fatalf("Edge returned an unexpected status: %q", resp.Status)
@@ -85,6 +87,7 @@ func TestRespHeaderXCacheAppend(t *testing.T) {
 	// Get first request, will come from origin, cannot be cached - hence cache MISS
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	xCache = resp.Header.Get("X-Cache")
 	expectedXCache = fmt.Sprintf("%s, MISS", originXCache)
@@ -111,6 +114,7 @@ func TestRespHeaderXCacheCreate(t *testing.T) {
 	// Get first request, will come from origin, cannot be cached - hence cache MISS
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	xCache = resp.Header.Get("X-Cache")
 	if xCache != expectedXCache {
@@ -131,6 +135,7 @@ func TestRespHeaderXServedBy(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	actualHeader := resp.Header.Get("X-Served-By")
 	if actualHeader == "" {
@@ -169,6 +174,7 @@ func TestRespHeaderXCacheHitsAppend(t *testing.T) {
 	// Get first request, will come from origin. Edge Hit Count 0
 	req, _ := http.NewRequest("GET", sourceUrl, nil)
 	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	xCacheHits = resp.Header.Get("X-Cache-Hits")
 	expectedXCacheHits = fmt.Sprintf("%s, 0", originXCacheHits)
@@ -182,6 +188,7 @@ func TestRespHeaderXCacheHitsAppend(t *testing.T) {
 
 	// Get request again. Should come from Edge now, hit count 1
 	resp = RoundTripCheckError(t, req)
+	defer resp.Body.Close()
 
 	xCacheHits = resp.Header.Get("X-Cache-Hits")
 	expectedXCacheHits = fmt.Sprintf("%s, 1", originXCacheHits)
