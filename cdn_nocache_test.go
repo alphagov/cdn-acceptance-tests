@@ -74,6 +74,32 @@ func TestNoCacheHeaderSetCookie(t *testing.T) {
 	testThreeRequestsNotCached(t, req, handler)
 }
 
+// Should not cache responses with a `Cache-Control: no-cache` header.
+// Varnish doesn't respect this by default.
+func TestNoCacheCacheControlNoCache(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	handler := func(h http.Header) {
+		h.Set("Cache-Control", "no-cache")
+	}
+
+	req := NewUniqueEdgeGET(t)
+	testThreeRequestsNotCached(t, req, handler)
+}
+
+// Should not cache responses with a `Cache-Control: no-store` header.
+// Varnish doesn't respect this by default.
+func TestNoCacheCacheControlNoStore(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	handler := func(h http.Header) {
+		h.Set("Cache-Control", "no-store")
+	}
+
+	req := NewUniqueEdgeGET(t)
+	testThreeRequestsNotCached(t, req, handler)
+}
+
 // Should not cache a response with a `Cache-Control: private` header.
 func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
 	ResetBackends(backendsByPriority)
