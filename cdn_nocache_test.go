@@ -85,6 +85,18 @@ func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
 	testThreeRequestsNotCached(t, req, handler)
 }
 
+// Should not cache a response with a `Cache-Control: max-age=0` header.
+func TestNoCacheHeaderCacheControlMaxAge0(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	handler := func(h http.Header) {
+		h.Set("Cache-Control", "max-age=0")
+	}
+
+	req := NewUniqueEdgeGET(t)
+	testThreeRequestsNotCached(t, req, handler)
+}
+
 // Should not cache a response with a `Vary: *` header.
 func TestNoCacheHeaderVaryAsterisk(t *testing.T) {
 	t.Skip("Not widely supported")
