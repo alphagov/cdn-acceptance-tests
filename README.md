@@ -70,9 +70,9 @@ When writing new tests please be sure to:
 
 ## Mock CDN virtual machine
 
-You can use the included Vagrant VM, which runs Nginx and Varnish, to mock
-CDN behaviour. This can be useful when developing new tests or
-functionality when working offline or in parallel to someone else.
+You can develop new tests against a Vagrant VM which uses Varnish to
+simulate a CDN. Nginx and stunnel are used to terminate/initiate TLS and
+inject headers.
 
 It is unlikely that *all* tests will run successfully. If you want a
 particular test to pass you may need to modify the Nginx or Varnish configs
