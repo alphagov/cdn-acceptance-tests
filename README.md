@@ -14,13 +14,19 @@ library][net/http].
 The single Go process acts as both the client and the origin server so that
 it can inspect the input and output of the CDN.
 ```
-              +---------+
-        +---> |   CDN   |-----+
-        |     +---------+     |
- client |                     | server
-        |     +---------+     |
-        +-----| go test | <---+
-              +---------+
+                   +---------+
+         +-------> |         |---------+
+         |         |   CDN   |         |
+         | +-------|         | <-----+ |
+         | |       +---------+       | |
+         | |                         | |
+ request-| |-response                | |
+         | |                         | |
+         | |   +-----------------+   | |
+         | +-> |     go test     |---+ |
+         |     |                 |     |
+         +-----| client ¦ server | <---+
+               +-----------------+
 ```
 
 When testing a real CDN, the tests must be run on a server that the CDN can
