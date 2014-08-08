@@ -89,9 +89,8 @@ inject headers.
                     +-----------------+
 ```
 
-It is unlikely that *all* tests will run successfully. If you want a
-particular test to pass you may need to modify the Nginx or Varnish configs
-in [`mock_cdn_config/`](/mock_cdn_config) accordingly.
+You may need to modify the configuration of the VM in
+[`mock_cdn_config/`](/mock_cdn_config) to account for new tests.
 
 To bring up the VM and point the tests at it:
 ```
