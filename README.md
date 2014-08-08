@@ -14,13 +14,19 @@ library][net/http].
 The single Go process acts as both the client and the origin server so that
 it can inspect the input and output of the CDN.
 ```
-              +---------+
-        +---> |   CDN   |-----+
-        |     +---------+     |
- client |                     | server
-        |     +---------+     |
-        +-----| go test | <---+
-              +---------+
+                   +---------+
+         +-------> |         |---------+
+         |         |   CDN   |         |
+         | +-------|         | <-----+ |
+         | |       +---------+       | |
+         | |                         | |
+ request-| |-response                | |
+         | |                         | |
+         | |   +-----------------+   | |
+         | +-> |     go test     |---+ |
+         |     |                 |     |
+         +-----| client ¦ server | <---+
+               +-----------------+
 ```
 
 When testing a real CDN, the tests must be run on a server that the CDN can
@@ -57,20 +63,36 @@ When writing new tests please be sure to:
 - always call `ResetBackendsInOrder()` at the beginning of each test to
   ensure that all of the backends are running and have their handlers reset
   from previous tests.
-- Define static inputs such as "number of requests" or "time between
+- use the helpers such as `NewUniqueEdgeGET()` and `RoundTripCheckError()`
+  which do a lot of the work, such as error checking, for you.
+- define static inputs such as "number of requests" or "time between
   requests" at the beginning of the test so that they're easy to locate. Use
   constants where possible to indicate that they won't be changed at
   runtime.
 
 ## Mock CDN virtual machine
 
-You can use the included Vagrant VM, which runs Nginx and Varnish, to mock
-CDN behaviour. This can be useful when developing new tests or
-functionality when working offline or in parallel to someone else.
+You can develop new tests against a Vagrant VM which uses Varnish to
+simulate a CDN. Nginx and stunnel are used to terminate/initiate TLS and
+inject headers.
+```
+               +---------------------------+
+         +---> |        Vagrant VM         |-----+
+         |     |                           |     |
+         | +---| Nginx ¦ Varnish ¦ stunnel | <-+ |
+         | |   +---------------------------+   | |
+         | |                                   | |
+ request-| |-response                          | |
+         | |                                   | |
+         | |        +-----------------+        | |
+         | +------> |     go test     |--------+ |
+         |          |                 |          |
+         +----------| client ¦ server | <--------+
+                    +-----------------+
+```
 
-It is unlikely that *all* tests will run successfully. If you want a
-particular test to pass you may need to modify the Nginx or Varnish configs
-in [`mock_cdn_config/`](/mock_cdn_config) accordingly.
+You may need to modify the configuration of the VM in
+[`mock_cdn_config/`](/mock_cdn_config) to account for new tests.
 
 To bring up the VM and point the tests at it:
 ```
