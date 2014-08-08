@@ -63,7 +63,9 @@ When writing new tests please be sure to:
 - always call `ResetBackendsInOrder()` at the beginning of each test to
   ensure that all of the backends are running and have their handlers reset
   from previous tests.
-- Define static inputs such as "number of requests" or "time between
+- use the helpers such as `NewUniqueEdgeGET()` and `RoundTripCheckError()`
+  which do a lot of the work, such as error checking, for you.
+- define static inputs such as "number of requests" or "time between
   requests" at the beginning of the test so that they're easy to locate. Use
   constants where possible to indicate that they won't be changed at
   runtime.
