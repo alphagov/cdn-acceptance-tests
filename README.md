@@ -73,6 +73,21 @@ When writing new tests please be sure to:
 You can develop new tests against a Vagrant VM which uses Varnish to
 simulate a CDN. Nginx and stunnel are used to terminate/initiate TLS and
 inject headers.
+```
+               +---------------------------+
+         +---> |        Vagrant VM         |-----+
+         |     |                           |     |
+         | +---| Nginx ¦ Varnish ¦ stunnel | <-+ |
+         | |   +---------------------------+   | |
+         | |                                   | |
+ request-| |-response                          | |
+         | |                                   | |
+         | |        +-----------------+        | |
+         | +------> |     go test     |--------+ |
+         |          |                 |          |
+         +----------| client ¦ server | <--------+
+                    +-----------------+
+```
 
 It is unlikely that *all* tests will run successfully. If you want a
 particular test to pass you may need to modify the Nginx or Varnish configs
