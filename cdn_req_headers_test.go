@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -41,7 +41,7 @@ func TestReqHeaderXFFCreateAndAppend(t *testing.T) {
 	}
 
 	// Use the IP returned by the first response to predict the second.
-	expectedHeaderVal := fmt.Sprintf("%s, %s", sentHeaderVal, ourReportedIP.String())
+	expectedHeaderVals := []string{sentHeaderVal, ourReportedIP.String()}
 
 	// Second request with existing XFF.
 	req = NewUniqueEdgeGET(t)
@@ -50,13 +50,28 @@ func TestReqHeaderXFFCreateAndAppend(t *testing.T) {
 	resp = RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
-	if receivedHeaderVal != expectedHeaderVal {
-		t.Errorf(
-			"Origin received %q header with wrong value. Expected %q, got %q",
+	receivedHeaderVals := strings.Split(receivedHeaderVal, ",")
+	if count := len(receivedHeaderVals); count != len(expectedHeaderVals) {
+		t.Fatalf(
+			"Origin received %q header with wrong count of IPs. Expected %d, got %d: %q",
 			headerName,
-			expectedHeaderVal,
+			expectedHeaderVals,
+			count,
 			receivedHeaderVal,
 		)
+	}
+
+	for count, expectedVal := range expectedHeaderVals {
+		receivedVal := strings.TrimSpace(receivedHeaderVals[count])
+		if receivedVal != expectedVal {
+			t.Errorf(
+				"Origin received %q header with wrong IP #%d. Expected %q, got %q",
+				headerName,
+				count+1,
+				expectedVal,
+				receivedVal,
+			)
+		}
 	}
 }
 
