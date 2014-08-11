@@ -20,6 +20,9 @@ var (
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 	backendCert   = flag.String("backendCert", "", "Override self-signed cert for backend TLS")
 	backendKey    = flag.String("backendKey", "", "Override self-signed cert, must be provided with -backendCert")
+	// This only works with tests that use RoundTripCheckError(), that either
+	// are either failing or run with the -v flag.
+	debugResp     = flag.Bool("debugResp", false, "Log responses for debugging")
 )
 
 // These consts and vars are available to all tests.
