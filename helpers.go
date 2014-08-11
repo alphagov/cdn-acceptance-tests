@@ -263,7 +263,7 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 	const responseCached = "first response"
 	const responseNotCached = "subsequent response"
 	var testCacheExpiry bool = respTTL > 0
-	var respTTLWithBuffer time.Duration = respTTL + (respTTL / 4)
+	var respTTLWithBuffer time.Duration = respTTL * 2
 	var requestsExpectedCount int
 
 	requestsReceivedCount := 0
