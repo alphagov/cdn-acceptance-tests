@@ -287,8 +287,8 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 		requestsReceivedCount++
 	})
 
-	for requestCount := 0; requestCount < 3; requestCount++ {
-		if testCacheExpiry && requestCount == 2 {
+	for requestCount := 1; requestCount < 4; requestCount++ {
+		if testCacheExpiry && requestCount == 3 {
 			time.Sleep(respTTLWithBuffer)
 		}
 
@@ -301,7 +301,7 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 		}
 
 		var expectedBody string
-		if testCacheExpiry && requestCount > 1 {
+		if testCacheExpiry && requestCount > 2 {
 			expectedBody = responseNotCached
 		} else {
 			expectedBody = responseCached
@@ -309,7 +309,8 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 
 		if receivedBody := string(body); receivedBody != expectedBody {
 			t.Errorf(
-				"Incorrect response body. Expected %q, got %q",
+				"Request %d received incorrect response body. Expected %q, got %q",
+				requestCount,
 				expectedBody,
 				receivedBody,
 			)
@@ -347,7 +348,7 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 		requestsReceivedCount++
 	})
 
-	for _, expectedBody := range responseBodies {
+	for requestCount, expectedBody := range responseBodies {
 		resp := RoundTripCheckError(t, req)
 		defer resp.Body.Close()
 
@@ -357,7 +358,12 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 		}
 
 		if receivedBody := string(body); receivedBody != expectedBody {
-			t.Errorf("Incorrect response body. Expected %q, got %q", expectedBody, receivedBody)
+			t.Errorf(
+				"Request %d received incorrect response body. Expected %q, got %q",
+				requestCount+1,
+				expectedBody,
+				receivedBody,
+			)
 		}
 	}
 }
