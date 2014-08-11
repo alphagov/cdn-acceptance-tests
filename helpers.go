@@ -142,13 +142,14 @@ func NewUniqueEdgeGET(t *testing.T) *http.Request {
 // or cookies, and return the response. If there are any errors then the
 // calling test will be aborted so as not to operate on a nil response.
 func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
+	log.Printf("Client made request: %#v", req)
 	start := time.Now()
 	resp, err := client.RoundTrip(req)
 	if duration := time.Since(start); duration > requestSlowThreshold {
 		t.Error("Slow request, took:", duration)
 	}
 	if *debugResp {
-		t.Logf("%#v", resp)
+		log.Printf("Client got response: %#v", resp)
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -288,6 +289,8 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 		}
 
 		requestsReceivedCount++
+		log.Printf("Backend got request: %#v", r)
+		log.Printf("Backend served response: %#v", w)
 	})
 
 	for requestCount := 1; requestCount < 4; requestCount++ {
