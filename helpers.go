@@ -147,6 +147,9 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 	if duration := time.Since(start); duration > requestSlowThreshold {
 		t.Error("Slow request, took:", duration)
 	}
+	if *debugResp {
+		t.Logf("%#v", resp)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
