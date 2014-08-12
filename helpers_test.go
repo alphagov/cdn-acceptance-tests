@@ -62,6 +62,7 @@ func TestHelpersCDNBackendServerProbes(t *testing.T) {
 func TestHelpersCDNServeStop(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
+	var connectionErrorRegex *regexp.Regexp = regexp.MustCompile(`(^EOF| connection refused)$`)
 	var expectedStarted bool
 
 	expectedStarted = true
@@ -102,8 +103,7 @@ func TestHelpersCDNServeStop(t *testing.T) {
 		t.Error("Client connection succeeded. The server should be refusing requests by now.")
 	}
 
-	re := regexp.MustCompile(`EOF`)
-	if !re.MatchString(fmt.Sprintf("%s", err)) {
+	if !connectionErrorRegex.MatchString(fmt.Sprintf("%s", err)) {
 		t.Errorf("Connection error %q is not as expected", err)
 	}
 }
