@@ -35,6 +35,7 @@ var (
 // These consts and vars are available to all tests.
 const requestTimeout = time.Second * 5
 const requestSlowThreshold = time.Second
+const skipVendorMsg = "Skipping test; not applicable to your selected vendor"
 
 var (
 	client             *http.Transport
