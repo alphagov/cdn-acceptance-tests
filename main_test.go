@@ -28,8 +28,8 @@ var (
 )
 
 var (
-	testForFastly     bool = false
-	testForCloudflare bool = false
+	vendorFastly     bool = false
+	vendorCloudflare bool = false
 )
 
 // These consts and vars are available to all tests.
@@ -65,9 +65,9 @@ func init() {
 
 	switch *vendor {
 	case "cloudflare":
-		testForCloudflare = true
+		vendorCloudflare = true
 	case "fastly":
-		testForFastly = true
+		vendorFastly = true
 	case "":
 		log.Println("No vendor specified; running generic tests only")
 	default:

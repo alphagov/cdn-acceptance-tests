@@ -135,10 +135,10 @@ func TestRespHeaderServedBy(t *testing.T) {
 	var headerName string
 
 	switch {
-	case testForCloudflare:
+	case vendorCloudflare:
 		headerName = "CF-RAY"
 		expectedServedByRegexp = regexp.MustCompile("^[a-z0-9]{16}-[A-Z]{3}$")
-	case testForFastly:
+	case vendorFastly:
 		headerName = "X-Served-By"
 		expectedServedByRegexp = regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
 	default:
