@@ -12,18 +12,18 @@ import (
 )
 
 var (
-	edgeHost      = flag.String("edgeHost", "", "Hostname of edge")
-	originPort    = flag.Int("originPort", 8080, "Origin port to listen on for requests")
-	backupPort1   = flag.Int("backupPort1", 8081, "Backup1 port to listen on for requests")
-	backupPort2   = flag.Int("backupPort2", 8082, "Backup2 port to listen on for requests")
-	skipFailover  = flag.Bool("skipFailover", false, "Skip failover tests and only setup the origin backend")
-	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 	backendCert   = flag.String("backendCert", "", "Override self-signed cert for backend TLS")
 	backendKey    = flag.String("backendKey", "", "Override self-signed cert, must be provided with -backendCert")
+	backupPort1   = flag.Int("backupPort1", 8081, "Backup1 port to listen on for requests")
+	backupPort2   = flag.Int("backupPort2", 8082, "Backup2 port to listen on for requests")
+	edgeHost      = flag.String("edgeHost", "", "Hostname of edge")
+	originPort    = flag.Int("originPort", 8080, "Origin port to listen on for requests")
+	skipFailover  = flag.Bool("skipFailover", false, "Skip failover tests and only setup the origin backend")
+	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 	usage         = flag.Bool("usage", false, "Print usage")
 	// This only works with tests that use RoundTripCheckError(), that either
 	// are either failing or run with the -v flag.
-	debugResp     = flag.Bool("debugResp", false, "Log responses for debugging")
+	debugResp = flag.Bool("debugResp", false, "Log responses for debugging")
 )
 
 // These consts and vars are available to all tests.
