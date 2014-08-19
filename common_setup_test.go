@@ -20,6 +20,7 @@ var (
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 	backendCert   = flag.String("backendCert", "", "Override self-signed cert for backend TLS")
 	backendKey    = flag.String("backendKey", "", "Override self-signed cert, must be provided with -backendCert")
+	usage         = flag.Bool("usage", false, "Print usage")
 	// This only works with tests that use RoundTripCheckError(), that either
 	// are either failing or run with the -v flag.
 	debugResp     = flag.Bool("debugResp", false, "Log responses for debugging")
@@ -43,6 +44,11 @@ var hardCachedEdgeHostIp string
 func init() {
 
 	flag.Parse()
+
+	if *usage {
+		flag.Usage()
+		os.Exit(0)
+	}
 
 	if *edgeHost == "" {
 		fmt.Printf("ERROR: -edgeHost must be set to the CDN edge hostname we wish to test against\n\n")
