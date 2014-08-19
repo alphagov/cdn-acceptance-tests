@@ -21,9 +21,15 @@ var (
 	skipFailover  = flag.Bool("skipFailover", false, "Skip failover tests and only setup the origin backend")
 	skipVerifyTLS = flag.Bool("skipVerifyTLS", false, "Skip TLS cert verification if set")
 	usage         = flag.Bool("usage", false, "Print usage")
+	vendor        = flag.String("vendor", "", "Name of vendor; run tests specific to vendor")
 	// This only works with tests that use RoundTripCheckError(), that either
 	// are either failing or run with the -v flag.
 	debugResp = flag.Bool("debugResp", false, "Log responses for debugging")
+)
+
+var (
+	testForFastly     bool = false
+	testForCloudflare bool = false
 )
 
 // These consts and vars are available to all tests.
@@ -54,6 +60,17 @@ func init() {
 		fmt.Printf("ERROR: -edgeHost must be set to the CDN edge hostname we wish to test against\n\n")
 		flag.Usage()
 		os.Exit(1)
+	}
+
+	switch *vendor {
+	case "cloudflare":
+		testForCloudflare = true
+	case "fastly":
+		testForFastly = true
+	case "":
+		log.Println("No vendor specified; running generic tests only")
+	default:
+		log.Fatalf("Vendor %q unrecognised; aborting", *vendor)
 	}
 
 	tlsOptions := &tls.Config{}
