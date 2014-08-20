@@ -33,10 +33,10 @@ var (
 )
 
 // These consts and vars are available to all tests.
-const requestTimeout = time.Second * 5
-const requestSlowThreshold = time.Second
 const notImplementedForVendor = "Test not yet implemented for your selected vendor or no vendor specified"
 const notSupportedByVendor = "Feature not supported by your selected vendor"
+const requestSlowThreshold = time.Second
+const requestTimeout = time.Second * 5
 
 var (
 	client             *http.Transport
