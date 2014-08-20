@@ -52,6 +52,11 @@ To run a subset of tests based on a regex:
 go test -run 'Test(Cache|NoCache)'
 ```
 
+To see all available command-line options:
+```sh
+go test -usage
+```
+
 ## Writing tests
 
 When writing new tests please be sure to:
