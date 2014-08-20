@@ -35,7 +35,8 @@ var (
 // These consts and vars are available to all tests.
 const requestTimeout = time.Second * 5
 const requestSlowThreshold = time.Second
-const skipVendorMsg = "Skipping test; not applicable to your selected vendor"
+const notImplementedForVendor = "Test not yet implemented for your selected vendor or no vendor specified"
+const notSupportedByVendor = "Feature not supported by your selected vendor"
 
 var (
 	client             *http.Transport
@@ -69,7 +70,7 @@ func init() {
 	case "fastly":
 		vendorFastly = true
 	case "":
-		log.Println("No vendor specified; running generic tests only")
+		log.Println("No vendor specified")
 	default:
 		log.Fatalf("Vendor %q unrecognised; aborting", *vendor)
 	}

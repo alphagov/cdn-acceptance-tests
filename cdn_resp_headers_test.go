@@ -142,7 +142,7 @@ func TestRespHeaderServedBy(t *testing.T) {
 		headerName = "X-Served-By"
 		expectedServedByRegexp = regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
 	default:
-		t.Skip(skipVendorMsg)
+		t.Fatal(notImplementedForVendor)
 	}
 
 	req := NewUniqueEdgeGET(t)

@@ -86,9 +86,11 @@ func TestReqHeaderUnspoofableClientIP(t *testing.T) {
 
 	switch {
 	case vendorCloudflare:
-		t.skip(skipVendorMsg)
-	default:
+		t.Skip(notSupportedByVendor)
+	case vendorFastly:
 		headerName = "True-Client-IP"
+	default:
+		t.Fatal(notImplementedForVendor)
 	}
 
 	sentHeaderIP := net.ParseIP(sentHeaderVal)
