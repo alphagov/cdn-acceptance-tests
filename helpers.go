@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 )
@@ -369,14 +368,4 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 			)
 		}
 	}
-}
-
-func stringContainsOneOf(haystack string, needles []string) bool {
-	for _, needle := range needles {
-		if strings.Contains(haystack, needle) {
-			return true
-		}
-	}
-
-	return false
 }
