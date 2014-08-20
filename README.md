@@ -44,12 +44,14 @@ brew install go
 
 To run all the tests:
 ```sh
-go test
+go test -edgeHost cdn-vendor.example.com
 ```
+
+...where `-edgeHost` specifies the CDN edge.
 
 To run a subset of tests based on a regex:
 ```sh
-go test -run 'Test(Cache|NoCache)'
+go test -edgeHost cdn-vendor.example.com -run 'Test(Cache|NoCache)'
 ```
 
 To see all available command-line options:
