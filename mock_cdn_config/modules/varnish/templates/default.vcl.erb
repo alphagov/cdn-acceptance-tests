@@ -141,7 +141,7 @@ sub vcl_error {
      set obj.status = 301;
      set obj.response = "Moved Permanently";
      set obj.http.Location = "https://" + req.http.host + req.url;
-     synthetic {""};
+     synthetic "";
      return (deliver);
   }
 
