@@ -7,7 +7,7 @@ before_script:
   - sudo apt-get update -qq
   - sudo apt-get install puppet
 
-script: make travis
+script: travis-ci.sh
 
 notifications:
   email: false
