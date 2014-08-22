@@ -85,9 +85,7 @@ func TestReqHeaderUnspoofableClientIP(t *testing.T) {
 	var receivedHeaderVal string
 
 	switch {
-	case vendorCloudflare:
-		t.Skip(notSupportedByVendor)
-	case vendorFastly:
+	case vendorCloudflare, vendorFastly:
 		headerName = "True-Client-IP"
 	default:
 		t.Fatal(notImplementedForVendor)
