@@ -105,15 +105,14 @@ func TestRespHeaderXCacheAppend(t *testing.T) {
 
 }
 
-// Should set a header containing 'MISS' if request is not cached
-func TestRespHeaderCacheMiss(t *testing.T) {
+// Should set a header containing 'HIT' or 'MISS' depending on whether request is cached
+func TestRespHeaderCacheHitMiss(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	const expectedVal = "MISS"
-
 	var (
-		headerName string
-		headerVal  string
+		expectedVal string
+		headerName  string
+		headerVal   string
 	)
 
 	switch {
@@ -130,6 +129,7 @@ func TestRespHeaderCacheMiss(t *testing.T) {
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
+	expectedVal = "MISS"
 	headerVal = resp.Header.Get(headerName)
 
 	if headerVal != expectedVal {
@@ -141,6 +141,21 @@ func TestRespHeaderCacheMiss(t *testing.T) {
 		)
 	}
 
+	// Get request again. Should come from Edge now and result in a cache HIT
+	resp = RoundTripCheckError(t, req)
+	defer resp.Body.Close()
+
+	expectedVal = "HIT"
+	headerVal = resp.Header.Get(headerName)
+
+	if headerVal != expectedVal {
+		t.Errorf(
+			"%s on second request is wrong: expected %q, got %q",
+			headerName,
+			expectedVal,
+			headerVal,
+		)
+	}
 }
 
 // Should set an 'Served-By' header giving information on the edge node and location served from.
