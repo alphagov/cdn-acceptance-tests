@@ -105,27 +105,39 @@ func TestRespHeaderXCacheAppend(t *testing.T) {
 
 }
 
-// Should set an X-Cache header containing only MISS if origin does not set an X-Cache Header'
-func TestRespHeaderXCacheCreate(t *testing.T) {
+// Should set a header containing 'MISS' if request is not cached
+func TestRespHeaderCacheMiss(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	const expectedXCache = "MISS"
+	const expectedVal = "MISS"
 
 	var (
-		xCache string
+		headerName string
+		headerVal  string
 	)
+
+	switch {
+	case vendorCloudflare:
+		headerName = "CF-Cache-Status"
+	case vendorFastly:
+		headerName = "X-Cache"
+	default:
+		t.Fatal(notImplementedForVendor)
+	}
 
 	// Get first request, will come from origin, cannot be cached - hence cache MISS
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
-	xCache = resp.Header.Get("X-Cache")
-	if xCache != expectedXCache {
+	headerVal = resp.Header.Get(headerName)
+
+	if headerVal != expectedVal {
 		t.Errorf(
-			"X-Cache on initial hit is wrong: expected %q, got %q",
-			expectedXCache,
-			xCache,
+			"%s on initial hit is wrong: expected %q, got %q",
+			headerName,
+			expectedVal,
+			headerVal,
 		)
 	}
 
