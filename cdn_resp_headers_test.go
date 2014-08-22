@@ -73,6 +73,10 @@ func TestRespHeaderAge(t *testing.T) {
 func TestRespHeaderXCacheAppend(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
+	if vendorCloudflare {
+		t.Skip(notSupportedByVendor)
+	}
+
 	const originXCache = "HIT"
 
 	var (
@@ -166,6 +170,10 @@ func TestRespHeaderServedBy(t *testing.T) {
 // This is in the format "{origin-hit-count}, {edge-hit-count}"
 func TestRespHeaderXCacheHitsAppend(t *testing.T) {
 	ResetBackends(backendsByPriority)
+
+	if vendorCloudflare {
+		t.Skip(notSupportedByVendor)
+	}
 
 	const originXCacheHits = "53"
 
