@@ -80,10 +80,18 @@ func TestReqHeaderXFFCreateAndAppend(t *testing.T) {
 func TestReqHeaderUnspoofableClientIP(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	const headerName = "True-Client-IP"
 	const sentHeaderVal = "203.0.113.99"
-	var sentHeaderIP = net.ParseIP(sentHeaderVal)
+	var headerName string
 	var receivedHeaderVal string
+
+	switch {
+	case vendorCloudflare, vendorFastly:
+		headerName = "True-Client-IP"
+	default:
+		t.Fatal(notImplementedForVendor)
+	}
+
+	sentHeaderIP := net.ParseIP(sentHeaderVal)
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaderVal = r.Header.Get(headerName)

@@ -127,23 +127,36 @@ func TestRespHeaderXCacheCreate(t *testing.T) {
 
 }
 
-// Should set an X-Served-By header giving information on the (Fastly) node and location served from.
-func TestRespHeaderXServedBy(t *testing.T) {
+// Should set an 'Served-By' header giving information on the edge node and location served from.
+func TestRespHeaderServedBy(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	expectedFastlyXServedByRegexp := regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
+	var expectedServedByRegexp *regexp.Regexp
+	var headerName string
+
+	switch {
+	case vendorCloudflare:
+		headerName = "CF-RAY"
+		expectedServedByRegexp = regexp.MustCompile("^[a-z0-9]{16}-[A-Z]{3}$")
+	case vendorFastly:
+		headerName = "X-Served-By"
+		expectedServedByRegexp = regexp.MustCompile("^cache-[a-z0-9]+-[A-Z]{3}$")
+	default:
+		t.Fatal(notImplementedForVendor)
+	}
 
 	req := NewUniqueEdgeGET(t)
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
-	actualHeader := resp.Header.Get("X-Served-By")
+	actualHeader := resp.Header.Get(headerName)
+
 	if actualHeader == "" {
-		t.Error("X-Served-By header has not been set by Edge")
+		t.Error(headerName + " header has not been set by Edge")
 	}
 
-	if expectedFastlyXServedByRegexp.FindString(actualHeader) != actualHeader {
-		t.Errorf("X-Served-By is not as expected: got %q", actualHeader)
+	if expectedServedByRegexp.FindString(actualHeader) != actualHeader {
+		t.Errorf("%s is not as expected: got %q", headerName, actualHeader)
 	}
 
 }
