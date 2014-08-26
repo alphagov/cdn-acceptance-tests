@@ -127,7 +127,8 @@ func TestRespHeaderCacheHitMiss(t *testing.T) {
 	const cacheDuration = time.Second
 
 	if vendorCloudflare {
-		expectedHeaderValues = append(expectedHeaderValues, "EXPIRED")
+		cloudFlareStatuses := []string{"EXPIRED"}
+		expectedHeaderValues = append(expectedHeaderValues, cloudFlareStatuses...)
 	}
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
