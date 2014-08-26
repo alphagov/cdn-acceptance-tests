@@ -110,9 +110,8 @@ func TestRespHeaderCacheHitMiss(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	var (
-		expectedVal string
 		headerName  string
-		headerVal   string
+		headerValue string
 	)
 
 	switch {
@@ -124,37 +123,27 @@ func TestRespHeaderCacheHitMiss(t *testing.T) {
 		t.Fatal(notImplementedForVendor)
 	}
 
-	// Get first request, will come from origin, cannot be cached - hence cache MISS
+	expectedHeaderValues := []string{"MISS", "HIT"}
+	const cacheDuration = time.Second
+
 	req := NewUniqueEdgeGET(t)
-	resp := RoundTripCheckError(t, req)
-	defer resp.Body.Close()
 
-	expectedVal = "MISS"
-	headerVal = resp.Header.Get(headerName)
+	for count, expectedValue := range expectedHeaderValues {
 
-	if headerVal != expectedVal {
-		t.Errorf(
-			"%s on initial hit is wrong: expected %q, got %q",
-			headerName,
-			expectedVal,
-			headerVal,
-		)
-	}
+		resp := RoundTripCheckError(t, req)
+		defer resp.Body.Close()
 
-	// Get request again. Should come from Edge now and result in a cache HIT
-	resp = RoundTripCheckError(t, req)
-	defer resp.Body.Close()
+		headerValue = resp.Header.Get(headerName)
 
-	expectedVal = "HIT"
-	headerVal = resp.Header.Get(headerName)
-
-	if headerVal != expectedVal {
-		t.Errorf(
-			"%s on second request is wrong: expected %q, got %q",
-			headerName,
-			expectedVal,
-			headerVal,
-		)
+		if headerValue != expectedValue {
+			t.Errorf(
+				"%s on request %d is wrong: expected %q, got %q",
+				headerName,
+				count+1,
+				expectedValue,
+				headerValue,
+			)
+		}
 	}
 }
 
