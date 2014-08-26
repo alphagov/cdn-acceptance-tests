@@ -126,9 +126,24 @@ func TestRespHeaderCacheHitMiss(t *testing.T) {
 	expectedHeaderValues := []string{"MISS", "HIT"}
 	const cacheDuration = time.Second
 
+	if vendorCloudflare {
+		expectedHeaderValues = append(expectedHeaderValues, "EXPIRED")
+	}
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		cacheControlValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
+		w.Header().Set("Cache-Control", cacheControlValue)
+	})
+
 	req := NewUniqueEdgeGET(t)
 
 	for count, expectedValue := range expectedHeaderValues {
+
+		if expectedValue == "EXPIRED" {
+			// sleep long enough for object to have expired
+			sleepDuration := cacheDuration + time.Second
+			time.Sleep(sleepDuration)
+		}
 
 		resp := RoundTripCheckError(t, req)
 		defer resp.Body.Close()
