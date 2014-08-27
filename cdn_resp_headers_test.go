@@ -73,6 +73,10 @@ func TestRespHeaderAge(t *testing.T) {
 func TestRespHeaderXCacheAppend(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
+	if vendorCloudflare {
+		t.Skip(notSupportedByVendor)
+	}
+
 	const originXCache = "HIT"
 
 	var (
@@ -101,30 +105,62 @@ func TestRespHeaderXCacheAppend(t *testing.T) {
 
 }
 
-// Should set an X-Cache header containing only MISS if origin does not set an X-Cache Header'
-func TestRespHeaderXCacheCreate(t *testing.T) {
+// Should set a header containing 'HIT' or 'MISS' depending on whether request is cached
+func TestRespHeaderCacheHitMiss(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	const expectedXCache = "MISS"
-
 	var (
-		xCache string
+		headerName  string
+		headerValue string
 	)
 
-	// Get first request, will come from origin, cannot be cached - hence cache MISS
-	req := NewUniqueEdgeGET(t)
-	resp := RoundTripCheckError(t, req)
-	defer resp.Body.Close()
-
-	xCache = resp.Header.Get("X-Cache")
-	if xCache != expectedXCache {
-		t.Errorf(
-			"X-Cache on initial hit is wrong: expected %q, got %q",
-			expectedXCache,
-			xCache,
-		)
+	switch {
+	case vendorCloudflare:
+		headerName = "CF-Cache-Status"
+	case vendorFastly:
+		headerName = "X-Cache"
+	default:
+		t.Fatal(notImplementedForVendor)
 	}
 
+	expectedHeaderValues := []string{"MISS", "HIT"}
+	const cacheDuration = time.Second
+
+	if vendorCloudflare {
+		cloudFlareStatuses := []string{"EXPIRED", "HIT"}
+		expectedHeaderValues = append(expectedHeaderValues, cloudFlareStatuses...)
+	}
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		cacheControlValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
+		w.Header().Set("Cache-Control", cacheControlValue)
+	})
+
+	req := NewUniqueEdgeGET(t)
+
+	for count, expectedValue := range expectedHeaderValues {
+
+		if expectedValue == "EXPIRED" {
+			// sleep long enough for object to have expired
+			sleepDuration := cacheDuration + time.Second
+			time.Sleep(sleepDuration)
+		}
+
+		resp := RoundTripCheckError(t, req)
+		defer resp.Body.Close()
+
+		headerValue = resp.Header.Get(headerName)
+
+		if headerValue != expectedValue {
+			t.Errorf(
+				"%s on request %d is wrong: expected %q, got %q",
+				headerName,
+				count+1,
+				expectedValue,
+				headerValue,
+			)
+		}
+	}
 }
 
 // Should set an 'Served-By' header giving information on the edge node and location served from.
@@ -166,6 +202,10 @@ func TestRespHeaderServedBy(t *testing.T) {
 // This is in the format "{origin-hit-count}, {edge-hit-count}"
 func TestRespHeaderXCacheHitsAppend(t *testing.T) {
 	ResetBackends(backendsByPriority)
+
+	if vendorCloudflare {
+		t.Skip(notSupportedByVendor)
+	}
 
 	const originXCacheHits = "53"
 
