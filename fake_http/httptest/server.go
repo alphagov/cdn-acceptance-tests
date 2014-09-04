@@ -4,7 +4,7 @@
 
 // Implementation of Server
 
-package httptest
+package fake_httptest
 
 import (
 	"crypto/tls"

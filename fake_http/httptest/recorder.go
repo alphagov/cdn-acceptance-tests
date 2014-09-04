@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package httptest provides utilities for HTTP testing.
-package httptest
+package fake_httptest
 
 import (
 	"bytes"

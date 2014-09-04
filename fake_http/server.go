@@ -4,7 +4,7 @@
 
 // HTTP server.  See RFC 2616.
 
-package http
+package fake_http
 
 import (
 	"bufio"

@@ -4,7 +4,7 @@
 
 // HTTP Response reading and parsing.
 
-package http
+package fake_http
 
 import (
 	"bufio"

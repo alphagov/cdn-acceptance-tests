@@ -4,7 +4,7 @@
 
 // HTTP reverse proxy handler
 
-package httputil
+package fake_httputil
 
 import (
 	"io"

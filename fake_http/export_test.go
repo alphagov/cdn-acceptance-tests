@@ -5,7 +5,7 @@
 // Bridge package to expose http internals to tests in the http_test
 // package.
 
-package http
+package fake_http
 
 import (
 	"net"

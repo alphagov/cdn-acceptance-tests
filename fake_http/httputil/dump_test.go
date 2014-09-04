@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package httputil
+package fake_httputil
 
 import (
 	"bytes"
@@ -69,7 +69,7 @@ var dumpTests = []dumpTest{
 
 		WantDumpOut: "GET /foo HTTP/1.1\r\n" +
 			"Host: example.com\r\n" +
-			"User-Agent: Go 1.1 package http\r\n" +
+			"User-Agent: Go 1.1 package fake_http\r\n" +
 			"Accept-Encoding: gzip\r\n\r\n",
 	},
 
@@ -81,7 +81,7 @@ var dumpTests = []dumpTest{
 
 		WantDumpOut: "GET /foo HTTP/1.1\r\n" +
 			"Host: example.com\r\n" +
-			"User-Agent: Go 1.1 package http\r\n" +
+			"User-Agent: Go 1.1 package fake_http\r\n" +
 			"Accept-Encoding: gzip\r\n\r\n",
 	},
 
@@ -103,7 +103,7 @@ var dumpTests = []dumpTest{
 
 		WantDumpOut: "POST / HTTP/1.1\r\n" +
 			"Host: post.tld\r\n" +
-			"User-Agent: Go 1.1 package http\r\n" +
+			"User-Agent: Go 1.1 package fake_http\r\n" +
 			"Content-Length: 6\r\n" +
 			"Accept-Encoding: gzip\r\n\r\n",
 

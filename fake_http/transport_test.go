@@ -4,7 +4,7 @@
 
 // Tests for transport.go
 
-package http_test
+package fake_http_test
 
 import (
 	"bufio"

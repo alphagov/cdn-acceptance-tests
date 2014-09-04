@@ -77,4 +77,4 @@ custom Server:
 	}
 	log.Fatal(s.ListenAndServe())
 */
-package http
+package fake_http

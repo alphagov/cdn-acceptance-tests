@@ -6,10 +6,10 @@
 
 // This code is a duplicate of ../chunked.go with these edits:
 //	s/newChunked/NewChunked/g
-//	s/package http/package httputil/
+//	s/package fake_http/package fake_httputil/
 // Please make any changes in both files.
 
-package httputil
+package fake_httputil
 
 import (
 	"bufio"

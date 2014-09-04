@@ -5,7 +5,7 @@
 // This code is duplicated in httputil/chunked_test.go.
 // Please make any changes in both files.
 
-package http
+package fake_http
 
 import (
 	"bytes"
