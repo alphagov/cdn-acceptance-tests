@@ -70,7 +70,7 @@ func init() {
 	case "fastly":
 		vendorFastly = true
 	case "":
-		log.Println("No vendor specified")
+		log.Fatalln("No vendor specified; must be either 'cloudflare' or 'fastly'")
 	default:
 		log.Fatalf("Vendor %q unrecognised; aborting", *vendor)
 	}
