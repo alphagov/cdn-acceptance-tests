@@ -5,17 +5,16 @@
 // Package httptest provides utilities for HTTP testing.
 package fake_httptest
 
-import (
-	"bytes"
-	"net/http"
-)
+import "bytes"
 
-// ResponseRecorder is an implementation of http.ResponseWriter that
+import "../../fake_http/"
+
+// ResponseRecorder is an implementation of fake_http.ResponseWriter that
 // records its mutations for later inspection in tests.
 type ResponseRecorder struct {
-	Code      int           // the HTTP response code from WriteHeader
-	HeaderMap http.Header   // the HTTP response headers
-	Body      *bytes.Buffer // if non-nil, the bytes.Buffer to append written data to
+	Code      int              // the HTTP response code from WriteHeader
+	HeaderMap fake_http.Header // the HTTP response headers
+	Body      *bytes.Buffer    // if non-nil, the bytes.Buffer to append written data to
 	Flushed   bool
 
 	wroteHeader bool
@@ -24,7 +23,7 @@ type ResponseRecorder struct {
 // NewRecorder returns an initialized ResponseRecorder.
 func NewRecorder() *ResponseRecorder {
 	return &ResponseRecorder{
-		HeaderMap: make(http.Header),
+		HeaderMap: make(fake_http.Header),
 		Body:      new(bytes.Buffer),
 		Code:      200,
 	}
@@ -35,10 +34,10 @@ func NewRecorder() *ResponseRecorder {
 const DefaultRemoteAddr = "1.2.3.4"
 
 // Header returns the response headers.
-func (rw *ResponseRecorder) Header() http.Header {
+func (rw *ResponseRecorder) Header() fake_http.Header {
 	m := rw.HeaderMap
 	if m == nil {
-		m = make(http.Header)
+		m = make(fake_http.Header)
 		rw.HeaderMap = m
 	}
 	return m

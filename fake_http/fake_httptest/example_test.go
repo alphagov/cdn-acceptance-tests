@@ -8,16 +8,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
+
 	"net/http/httptest"
 )
 
 func ExampleResponseRecorder() {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "something failed", http.StatusInternalServerError)
+	handler := func(w fake_http.ResponseWriter, r *fake_http.Request) {
+		fake_http.Error(w, "something failed", fake_http.StatusInternalServerError)
 	}
 
-	req, err := http.NewRequest("GET", "http://example.com/foo", nil)
+	req, err := fake_http.NewRequest("GET", "http://example.com/foo", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,12 +30,12 @@ func ExampleResponseRecorder() {
 }
 
 func ExampleServer() {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(fake_http.HandlerFunc(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		fmt.Fprintln(w, "Hello, client")
 	}))
 	defer ts.Close()
 
-	res, err := http.Get(ts.URL)
+	res, err := fake_http.Get(ts.URL)
 	if err != nil {
 		log.Fatal(err)
 	}

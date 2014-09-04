@@ -11,9 +11,10 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"sync"
+
+	"../../fake_http/"
 )
 
 // A Server is an HTTP server listening on a system-chosen port on the
@@ -29,7 +30,7 @@ type Server struct {
 
 	// Config may be changed after calling NewUnstartedServer and
 	// before Start or StartTLS.
-	Config *http.Server
+	Config *fake_http.Server
 
 	// wg counts the number of outstanding HTTP requests on this server.
 	// Close blocks until all requests are finished.
@@ -79,7 +80,7 @@ var serve = flag.String("httptest.serve", "", "if non-empty, httptest.NewServer 
 
 // NewServer starts and returns a new Server.
 // The caller should call Close when finished, to shut it down.
-func NewServer(handler http.Handler) *Server {
+func NewServer(handler fake_http.Handler) *Server {
 	ts := NewUnstartedServer(handler)
 	ts.Start()
 	return ts
@@ -91,10 +92,10 @@ func NewServer(handler http.Handler) *Server {
 // StartTLS.
 //
 // The caller should call Close when finished, to shut it down.
-func NewUnstartedServer(handler http.Handler) *Server {
+func NewUnstartedServer(handler fake_http.Handler) *Server {
 	return &Server{
 		Listener: newLocalListener(),
-		Config:   &http.Server{Handler: handler},
+		Config:   &fake_http.Server{Handler: handler},
 	}
 }
 
@@ -145,7 +146,7 @@ func (s *Server) StartTLS() {
 func (s *Server) wrapHandler() {
 	h := s.Config.Handler
 	if h == nil {
-		h = http.DefaultServeMux
+		h = fake_http.DefaultServeMux
 	}
 	s.Config.Handler = &waitGroupHandler{
 		s: s,
@@ -155,7 +156,7 @@ func (s *Server) wrapHandler() {
 
 // NewTLSServer starts and returns a new Server using TLS.
 // The caller should call Close when finished, to shut it down.
-func NewTLSServer(handler http.Handler) *Server {
+func NewTLSServer(handler fake_http.Handler) *Server {
 	ts := NewUnstartedServer(handler)
 	ts.StartTLS()
 	return ts
@@ -167,7 +168,7 @@ func (s *Server) Close() {
 	s.Listener.Close()
 	s.wg.Wait()
 	s.CloseClientConnections()
-	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+	if t, ok := fake_http.DefaultTransport.(*fake_http.Transport); ok {
 		t.CloseIdleConnections()
 	}
 }
@@ -191,10 +192,10 @@ func (s *Server) CloseClientConnections() {
 // until outstanding requests are finished.
 type waitGroupHandler struct {
 	s *Server
-	h http.Handler // non-nil
+	h fake_http.Handler // non-nil
 }
 
-func (h *waitGroupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *waitGroupHandler) ServeHTTP(w fake_http.ResponseWriter, r *fake_http.Request) {
 	h.s.wg.Add(1)
 	defer h.s.wg.Done() // a defer, in case ServeHTTP below panics
 	h.h.ServeHTTP(w, r)

@@ -6,8 +6,9 @@ package fake_httptest
 
 import (
 	"fmt"
-	"net/http"
 	"testing"
+
+	"../fake_http/"
 )
 
 func TestRecorder(t *testing.T) {
@@ -41,17 +42,17 @@ func TestRecorder(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		h      func(w http.ResponseWriter, r *http.Request)
+		h      func(w fake_http.ResponseWriter, r *fake_http.Request)
 		checks []checkFunc
 	}{
 		{
 			"200 default",
-			func(w http.ResponseWriter, r *http.Request) {},
+			func(w fake_http.ResponseWriter, r *fake_http.Request) {},
 			check(hasStatus(200), hasContents("")),
 		},
 		{
 			"first code only",
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				w.WriteHeader(201)
 				w.WriteHeader(202)
 				w.Write([]byte("hi"))
@@ -60,7 +61,7 @@ func TestRecorder(t *testing.T) {
 		},
 		{
 			"write sends 200",
-			func(w http.ResponseWriter, r *http.Request) {
+			func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				w.Write([]byte("hi first"))
 				w.WriteHeader(201)
 				w.WriteHeader(202)
@@ -69,16 +70,16 @@ func TestRecorder(t *testing.T) {
 		},
 		{
 			"flush",
-			func(w http.ResponseWriter, r *http.Request) {
-				w.(http.Flusher).Flush() // also sends a 200
+			func(w fake_http.ResponseWriter, r *fake_http.Request) {
+				w.(fake_http.Flusher).Flush() // also sends a 200
 				w.WriteHeader(201)
 			},
 			check(hasStatus(200), hasFlush(true)),
 		},
 	}
-	r, _ := http.NewRequest("GET", "http://foo.com/", nil)
+	r, _ := fake_http.NewRequest("GET", "http://foo.com/", nil)
 	for _, tt := range tests {
-		h := http.HandlerFunc(tt.h)
+		h := fake_http.HandlerFunc(tt.h)
 		rec := NewRecorder()
 		h.ServeHTTP(rec, r)
 		for _, check := range tt.checks {
