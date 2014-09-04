@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
+
+	"./fake_http"
 )
 
 // checkForSkipFailover skips the calling test if the skipFailover flag has
@@ -25,7 +26,7 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
-	const expectedStatusCode = http.StatusServiceUnavailable
+	const expectedStatusCode = fake_http.StatusServiceUnavailable
 	var expectedBody string
 
 	switch {
@@ -71,19 +72,19 @@ func TestFailoverErrorPageAllServers5xx(t *testing.T) {
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
-	const expectedStatusCode = http.StatusServiceUnavailable
+	const expectedStatusCode = fake_http.StatusServiceUnavailable
 	const expectedBody = "lucky golden ticket"
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusServiceUnavailable)
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
+		w.WriteHeader(fake_http.StatusServiceUnavailable)
 		w.Write([]byte(originServer.Name))
 	})
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusServiceUnavailable)
+	backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
+		w.WriteHeader(fake_http.StatusServiceUnavailable)
 		w.Write([]byte(backupServer1.Name))
 	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusServiceUnavailable)
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
+		w.WriteHeader(fake_http.StatusServiceUnavailable)
 		w.Write([]byte(expectedBody))
 	})
 
@@ -120,12 +121,12 @@ func TestFailoverOrigin5xxBackOff(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const expectedBody = "lucky golden ticket"
-	const expectedStatus = http.StatusOK
+	const expectedStatus = fake_http.StatusOK
 
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		w.Write([]byte(expectedBody))
 	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer2.Name
 		t.Errorf("Server %s received request and it shouldn't have", name)
 		w.Write([]byte(name))
@@ -136,12 +137,12 @@ func TestFailoverOrigin5xxBackOff(t *testing.T) {
 	for requestCount := 1; requestCount < 21; requestCount++ {
 		switch requestCount {
 		case 1: // Request 1 hits origin but is served from mirror1.
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusServiceUnavailable)
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
+				w.WriteHeader(fake_http.StatusServiceUnavailable)
 				w.Write([]byte(originServer.Name))
 			})
 		case 2: // Requests 2+ are served directly from mirror1.
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				name := originServer.Name
 				t.Errorf("Server %s received request and it shouldn't have", name)
 				w.Write([]byte(name))
@@ -190,7 +191,7 @@ func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
 	const respTTLWithBuffer = 5 * respTTL
 	headerValue := fmt.Sprintf("max-age=%.0f", respTTL.Seconds())
 
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer2.Name
 		t.Errorf("Server %s received request and it shouldn't have", name)
 		w.Write([]byte(name))
@@ -204,11 +205,11 @@ func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
 		case 1: // Request 1 populates cache.
 			expectedBody = expectedResponseStale
 
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				w.Header().Set("Cache-Control", headerValue)
 				w.Write([]byte(expectedBody))
 			})
-			backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				name := backupServer1.Name
 				t.Errorf("Server %s received request and it shouldn't have", name)
 				w.Write([]byte(name))
@@ -218,19 +219,19 @@ func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
 			expectedBody = expectedResponseFresh
 
 			originServer.Stop()
-			backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				w.Write([]byte(expectedBody))
 			})
 		case 3: // Request 3 still comes from cache when origin is back.
 			expectedBody = expectedResponseFresh
 
 			ResetBackends(backendsByPriority)
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				name := originServer.Name
 				t.Errorf("Server %s received request and it shouldn't have", name)
 				w.Write([]byte(name))
 			})
-			backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				name := backupServer1.Name
 				t.Errorf("Server %s received request and it shouldn't have", name)
 				w.Write([]byte(name))
@@ -269,12 +270,12 @@ func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
 	const respTTL = time.Duration(2 * time.Second)
 	headerValue := fmt.Sprintf("max-age=%.0f", respTTL.Seconds())
 
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer1.Name
 		t.Errorf("Server %s received request and it shouldn't have", name)
 		w.Write([]byte(name))
 	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer2.Name
 		t.Errorf("Server %s received request and it shouldn't have", name)
 		w.Write([]byte(name))
@@ -285,7 +286,7 @@ func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
 	for requestCount := 1; requestCount < 3; requestCount++ {
 		switch requestCount {
 		case 1: // Request 1 populates cache.
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				w.Header().Set("Cache-Control", headerValue)
 				w.Write([]byte(expectedBody))
 			})
@@ -327,12 +328,12 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 	const waitSaintMode = time.Duration(5 * time.Second)
 	headerValue := fmt.Sprintf("max-age=%.0f", respTTL.Seconds())
 
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer1.Name
 		t.Errorf("Server %s received request and it shouldn't have", name)
 		w.Write([]byte(name))
 	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer2.Name
 		t.Errorf("Server %s received request and it shouldn't have", name)
 		w.Write([]byte(name))
@@ -346,7 +347,7 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 		case 1: // Request 1 populates cache.
 			expectedBody = expectedResponseStale
 
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				w.Header().Set("Cache-Control", headerValue)
 				w.Write([]byte(expectedBody))
 			})
@@ -354,15 +355,15 @@ func TestFailoverOrigin5xxServeStale(t *testing.T) {
 			time.Sleep(respTTLWithBuffer)
 			expectedBody = expectedResponseStale
 
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusServiceUnavailable)
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
+				w.WriteHeader(fake_http.StatusServiceUnavailable)
 				w.Write([]byte(originServer.Name))
 			})
 		case 5: // Last request comes directly from origin again.
 			time.Sleep(waitSaintMode)
 			expectedBody = expectedResponseFresh
 
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				w.Write([]byte(expectedBody))
 			})
 		}
@@ -392,13 +393,13 @@ func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	expectedBody := "lucky golden ticket"
-	expectedStatus := http.StatusOK
+	expectedStatus := fake_http.StatusOK
 
 	originServer.Stop()
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		w.Write([]byte(expectedBody))
 	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer2.Name
 		t.Errorf("Server %s received a request and it shouldn't have", name)
 		w.Write([]byte(name))
@@ -436,20 +437,20 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	expectedBody := "lucky golden ticket"
-	expectedStatus := http.StatusOK
+	expectedStatus := fake_http.StatusOK
 	backendsSawRequest := map[string]bool{}
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := originServer.Name
 		if !backendsSawRequest[name] {
-			w.WriteHeader(http.StatusServiceUnavailable)
+			w.WriteHeader(fake_http.StatusServiceUnavailable)
 			backendsSawRequest[name] = true
 		} else {
 			t.Errorf("Server %s received more than one request", name)
 		}
 		w.Write([]byte(name))
 	})
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer1.Name
 		if !backendsSawRequest[name] {
 			w.Write([]byte(expectedBody))
@@ -459,7 +460,7 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 			w.Write([]byte(name))
 		}
 	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer2.Name
 		t.Errorf("Server %s received a request and it shouldn't have", name)
 		w.Write([]byte(name))
@@ -497,11 +498,11 @@ func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	expectedBody := "lucky golden ticket"
-	expectedStatus := http.StatusOK
+	expectedStatus := fake_http.StatusOK
 
 	originServer.Stop()
 	backupServer1.Stop()
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		w.Write([]byte(expectedBody))
 	})
 
@@ -537,30 +538,30 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	expectedBody := "lucky golden ticket"
-	expectedStatus := http.StatusOK
+	expectedStatus := fake_http.StatusOK
 	backendsSawRequest := map[string]bool{}
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := originServer.Name
 		if !backendsSawRequest[name] {
-			w.WriteHeader(http.StatusServiceUnavailable)
+			w.WriteHeader(fake_http.StatusServiceUnavailable)
 			backendsSawRequest[name] = true
 		} else {
 			t.Errorf("Server %s received more than one request", name)
 		}
 		w.Write([]byte(name))
 	})
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer1.Name
 		if !backendsSawRequest[name] {
-			w.WriteHeader(http.StatusServiceUnavailable)
+			w.WriteHeader(fake_http.StatusServiceUnavailable)
 			backendsSawRequest[name] = true
 		} else {
 			t.Errorf("Server %s received more than one request", name)
 		}
 		w.Write([]byte(name))
 	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer2.Name
 		if !backendsSawRequest[name] {
 			w.Write([]byte(expectedBody))
@@ -604,20 +605,20 @@ func TestFailoverNoFallbackHeader(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const headerName = "No-Fallback"
-	const expectedStatus = http.StatusServiceUnavailable
+	const expectedStatus = fake_http.StatusServiceUnavailable
 	const expectedBody = "custom error page"
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		w.Header().Set(headerName, "")
 		w.WriteHeader(expectedStatus)
 		w.Write([]byte(expectedBody))
 	})
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer1.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer1.Name
 		t.Errorf("Server %s received request and it shouldn't have", name)
 		w.Write([]byte(name))
 	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	backupServer2.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		name := backupServer2.Name
 		t.Errorf("Server %s received request and it shouldn't have", name)
 		w.Write([]byte(name))

@@ -2,8 +2,9 @@ package main
 
 import (
 	"io/ioutil"
-	"net/http"
 	"testing"
+
+	"./fake_http"
 )
 
 // Should redirect from HTTP to HTTPS without hitting origin, whilst
@@ -14,11 +15,11 @@ func TestMiscProtocolRedirect(t *testing.T) {
 	const reqPath = "/one/two"
 	const reqProto = "http"
 	const expectedProto = "https"
-	const expectedStatus = http.StatusMovedPermanently
+	const expectedStatus = fake_http.StatusMovedPermanently
 	const headerName = "Location"
 	var expectedURL string
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		t.Error("Request should not have made it to origin")
 	})
 
@@ -69,7 +70,7 @@ func TestMiscRestrictPurgeRequests(t *testing.T) {
 			expectedBody = "this should not be purged"
 			expectedStatus = 200
 
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				w.Write([]byte(expectedBody))
 			})
 		case 2:
@@ -77,7 +78,7 @@ func TestMiscRestrictPurgeRequests(t *testing.T) {
 			expectedBody = ""
 			expectedStatus = 403
 
-			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 				t.Error("Request should not have made it to origin")
 				w.Write([]byte(originServer.Name))
 			})

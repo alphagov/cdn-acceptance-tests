@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"regexp"
 	"strconv"
 	"testing"
 	"time"
+
+	"./fake_http"
 )
 
 // Test that useful common cache-related parameters are sent to the
@@ -22,7 +23,7 @@ func TestRespHeaderAge(t *testing.T) {
 	const expectedAgeInSeconds = originAgeInSeconds + secondsToWaitBetweenRequests
 	requestReceivedCount := 0
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		if requestReceivedCount == 0 {
 			w.Header().Set("Cache-Control", "max-age=1800, public")
 			w.Header().Set("Age", fmt.Sprintf("%d", originAgeInSeconds))
@@ -84,7 +85,7 @@ func TestRespHeaderXCacheAppend(t *testing.T) {
 		expectedXCache string
 	)
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		w.Header().Set("X-Cache", originXCache)
 	})
 
@@ -131,7 +132,7 @@ func TestRespHeaderCacheHitMiss(t *testing.T) {
 		expectedHeaderValues = append(expectedHeaderValues, cloudFlareStatuses...)
 	}
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		cacheControlValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
 		w.Header().Set("Cache-Control", cacheControlValue)
 	})
@@ -216,7 +217,7 @@ func TestRespHeaderXCacheHitsAppend(t *testing.T) {
 
 	uuid := NewUUID()
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
 			w.Header().Set("X-Cache-Hits", originXCacheHits)
 		}
@@ -225,7 +226,7 @@ func TestRespHeaderXCacheHitsAppend(t *testing.T) {
 	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
 
 	// Get first request, will come from origin. Edge Hit Count 0
-	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	req, _ := fake_http.NewRequest("GET", sourceUrl, nil)
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 

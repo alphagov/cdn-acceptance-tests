@@ -7,12 +7,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"testing"
 	"time"
+
+	"./fake_http"
 )
 
 // CDNBackendServer is a backend server which will receive and respond to
@@ -21,14 +22,14 @@ type CDNBackendServer struct {
 	Name     string
 	Port     int
 	TLSCerts []tls.Certificate
-	handler  func(w http.ResponseWriter, r *http.Request)
+	handler  func(w fake_http.ResponseWriter, r *fake_http.Request)
 	server   *httptest.Server
 }
 
-// ServeHTTP satisfies the http.HandlerFunc interface. Health check requests
+// ServeHTTP satisfies the fake_http.HandlerFunc interface. Health check requests
 // for `HEAD /` are always served 200 responses. Other requests are passed
 // off to a custom handler provided by SwitchHandler.
-func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *CDNBackendServer) ServeHTTP(w fake_http.ResponseWriter, r *fake_http.Request) {
 	w.Header().Set("Backend-Name", s.Name)
 	if r.Method == "HEAD" && r.URL.Path == "/" {
 		w.Header().Set("PING", "PONG")
@@ -41,12 +42,12 @@ func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // ResetHandler sets the handler back to an empty function that will return
 // a 200 response.
 func (s *CDNBackendServer) ResetHandler() {
-	s.handler = func(w http.ResponseWriter, r *http.Request) {}
+	s.handler = func(w fake_http.ResponseWriter, r *fake_http.Request) {}
 }
 
 // SwitchHandler sets the handler to a custom function. This is used by
 // tests to pass in their own request inspection and response handler.
-func (s *CDNBackendServer) SwitchHandler(h func(w http.ResponseWriter, r *http.Request)) {
+func (s *CDNBackendServer) SwitchHandler(h func(w fake_http.ResponseWriter, r *fake_http.Request)) {
 	s.handler = h
 }
 
@@ -127,9 +128,9 @@ func NewUniqueEdgeURL() string {
 // NewUniqueEdgeURL() to ensure that it hasn't previously been cached. The
 // request method field of the returned object can be later modified if
 // required.
-func NewUniqueEdgeGET(t *testing.T) *http.Request {
+func NewUniqueEdgeGET(t *testing.T) *fake_http.Request {
 	url := NewUniqueEdgeURL()
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := fake_http.NewRequest("GET", url, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,10 +138,10 @@ func NewUniqueEdgeGET(t *testing.T) *http.Request {
 	return req
 }
 
-// Make an HTTP request using http.RoundTrip, which doesn't handle redirects
+// Make an HTTP request using fake_http.RoundTrip, which doesn't handle redirects
 // or cookies, and return the response. If there are any errors then the
 // calling test will be aborted so as not to operate on a nil response.
-func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
+func RoundTripCheckError(t *testing.T, req *fake_http.Request) *fake_http.Response {
 	start := time.Now()
 	resp, err := client.RoundTrip(req)
 	if duration := time.Since(start); duration > requestSlowThreshold {
@@ -209,7 +210,7 @@ func waitForBackend(expectedBackendName string) error {
 	log.Printf("Checking health of %s...", expectedBackendName)
 	for try := 0; try <= maxRetries; try++ {
 		url = NewUniqueEdgeURL()
-		req, _ := http.NewRequest("GET", url, nil)
+		req, _ := fake_http.NewRequest("GET", url, nil)
 
 		resp, err := client.RoundTrip(req)
 		if err != nil {
@@ -238,7 +239,7 @@ func waitForBackend(expectedBackendName string) error {
 }
 
 // Callback function to modify complete response.
-type responseCallback func(w http.ResponseWriter)
+type responseCallback func(w fake_http.ResponseWriter)
 
 // Wrapper for testRequestsCachedDuration() with a respTTL of zero.
 // Meaning that the cached object doesn't expire.
@@ -273,9 +274,9 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 	}
 
 	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := fake_http.NewRequest("GET", url, nil)
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		if respCB != nil {
 			respCB(w)
 		}
@@ -329,12 +330,12 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 }
 
 // Callback function to modify response headers.
-type responseHeaderCallback func(h http.Header)
+type responseHeaderCallback func(h fake_http.Header)
 
 // Helper function to make three requests and verify that we get three
 // unique and uncached responses back. A responseHeaderCallback, if not nil,
 // will be called to modify the response headers.
-func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB responseHeaderCallback) {
+func testThreeRequestsNotCached(t *testing.T, req *fake_http.Request, headerCB responseHeaderCallback) {
 	requestsReceivedCount := 0
 	responseBodies := []string{
 		"first response",
@@ -342,7 +343,7 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 		"third response",
 	}
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		if headerCB != nil {
 			headerCB(w.Header())
 		}

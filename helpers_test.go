@@ -4,11 +4,12 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
-	"net/http"
 	"reflect"
 	"regexp"
 	"strings"
 	"testing"
+
+	"./fake_http"
 )
 
 // CDNBackendServer instance should be ready to serve requests when test
@@ -18,7 +19,7 @@ func TestHelpersCDNBackendServerHandlers(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	url := originServer.server.URL + "/" + NewUUID()
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := fake_http.NewRequest("GET", url, nil)
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
@@ -27,7 +28,7 @@ func TestHelpersCDNBackendServerHandlers(t *testing.T) {
 	}
 
 	for _, statusCode := range []int{301, 302, 403, 404} {
-		originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 			w.WriteHeader(statusCode)
 		})
 
@@ -45,12 +46,12 @@ func TestHelpersCDNBackendServerHandlers(t *testing.T) {
 func TestHelpersCDNBackendServerProbes(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		t.Error("HEAD request incorrectly served by CDNBackendServer.handler")
 	})
 
 	url := originServer.server.URL + "/"
-	req, _ := http.NewRequest("HEAD", url, nil)
+	req, _ := fake_http.NewRequest("HEAD", url, nil)
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
@@ -75,7 +76,7 @@ func TestHelpersCDNServeStop(t *testing.T) {
 	}
 
 	url := originServer.server.URL + "/" + NewUUID()
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := fake_http.NewRequest("GET", url, nil)
 
 	resp, err := client.RoundTrip(req)
 	if err != nil {

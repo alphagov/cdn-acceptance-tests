@@ -2,9 +2,10 @@ package main
 
 import (
 	"net"
-	"net/http"
 	"strings"
 	"testing"
+
+	"./fake_http"
 )
 
 // Should set an `X-Forwarded-For` header for requests that don't already
@@ -18,7 +19,7 @@ func TestReqHeaderXFFCreateAndAppend(t *testing.T) {
 	var ourReportedIP net.IP
 	var receivedHeaderVal string
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		receivedHeaderVal = r.Header.Get(headerName)
 	})
 
@@ -93,7 +94,7 @@ func TestReqHeaderUnspoofableClientIP(t *testing.T) {
 
 	sentHeaderIP := net.ParseIP(sentHeaderVal)
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		receivedHeaderVal = r.Header.Get(headerName)
 	})
 
@@ -119,7 +120,7 @@ func TestReqHeaderHostUnmodified(t *testing.T) {
 	var receivedHeaderVal string
 
 	ResetBackends(backendsByPriority)
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		receivedHeaderVal = r.Host
 	})
 

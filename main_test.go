@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"time"
+
+	"./fake_http"
 )
 
 var (
@@ -39,7 +40,7 @@ const requestSlowThreshold = time.Second
 const requestTimeout = time.Second * 5
 
 var (
-	client             *http.Transport
+	client             *fake_http.Transport
 	originServer       *CDNBackendServer
 	backupServer1      *CDNBackendServer
 	backupServer2      *CDNBackendServer
@@ -79,7 +80,7 @@ func init() {
 	if *skipVerifyTLS {
 		tlsOptions.InsecureSkipVerify = true
 	}
-	client = &http.Transport{
+	client = &fake_http.Transport{
 		ResponseHeaderTimeout: requestTimeout,
 		TLSClientConfig:       tlsOptions,
 		Dial:                  HardCachedHostDial,
@@ -143,7 +144,7 @@ func CachedHostIpAddress(host string) string {
 }
 
 // HardCachedHostDial acts as a replacement Dial function, ostensibly for
-// http.Transport. It uses the IP address returned by CachedHostIpAddress
+// fake_http.Transport. It uses the IP address returned by CachedHostIpAddress
 // and passes that to the stock net.Dial function, to prevent repeat DNS
 // lookups of the provided hostname in addr. This is to prevent us from switching
 // from one CDN location to another mid-test.

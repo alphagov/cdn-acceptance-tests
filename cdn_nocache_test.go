@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"testing"
+
+	"./fake_http"
 )
 
 // Should send request to origin by default
@@ -12,7 +13,7 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 
 	uuid := NewUUID()
 
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+	originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 		if r.Method == "GET" && r.URL.Path == fmt.Sprintf("/%s", uuid) {
 			w.Header().Set("EnsureOriginServed", uuid)
 		}
@@ -20,7 +21,7 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 
 	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
 
-	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	req, _ := fake_http.NewRequest("GET", sourceUrl, nil)
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
@@ -66,7 +67,7 @@ func TestNoCacheHeaderCookie(t *testing.T) {
 func TestNoCacheHeaderSetCookie(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	handler := func(h http.Header) {
+	handler := func(h fake_http.Header) {
 		h.Set("Set-Cookie", "sekret=mekmitasdigoat")
 	}
 
@@ -79,7 +80,7 @@ func TestNoCacheHeaderSetCookie(t *testing.T) {
 func TestNoCacheCacheControlNoCache(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	handler := func(h http.Header) {
+	handler := func(h fake_http.Header) {
 		h.Set("Cache-Control", "no-cache")
 	}
 
@@ -92,7 +93,7 @@ func TestNoCacheCacheControlNoCache(t *testing.T) {
 func TestNoCacheCacheControlNoStore(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	handler := func(h http.Header) {
+	handler := func(h fake_http.Header) {
 		h.Set("Cache-Control", "no-store")
 	}
 
@@ -104,7 +105,7 @@ func TestNoCacheCacheControlNoStore(t *testing.T) {
 func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	handler := func(h http.Header) {
+	handler := func(h fake_http.Header) {
 		h.Set("Cache-Control", "private")
 	}
 
@@ -116,7 +117,7 @@ func TestNoCacheHeaderCacheControlPrivate(t *testing.T) {
 func TestNoCacheHeaderCacheControlMaxAge0(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	handler := func(h http.Header) {
+	handler := func(h fake_http.Header) {
 		h.Set("Cache-Control", "max-age=0")
 	}
 
@@ -130,7 +131,7 @@ func TestNoCacheHeaderVaryAsterisk(t *testing.T) {
 
 	ResetBackends(backendsByPriority)
 
-	handler := func(h http.Header) {
+	handler := func(h fake_http.Header) {
 		h.Set("Vary", "*")
 	}
 

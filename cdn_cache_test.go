@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"./fake_http"
 )
 
 // Should cache first response for an unspecified period of time if when it
@@ -28,8 +30,8 @@ func TestCacheExpires(t *testing.T) {
 
 	const cacheDuration = time.Duration(5 * time.Second)
 
-	handler := func(w http.ResponseWriter) {
-		headerValue := time.Now().UTC().Add(cacheDuration).Format(http.TimeFormat)
+	handler := func(w fake_http.ResponseWriter) {
+		headerValue := time.Now().UTC().Add(cacheDuration).Format(fake_http.TimeFormat)
 		w.Header().Set("Expires", headerValue)
 	}
 
@@ -44,7 +46,7 @@ func TestCacheCacheControlMaxAge(t *testing.T) {
 	const cacheDuration = time.Duration(5 * time.Second)
 	headerValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
 
-	handler := func(w http.ResponseWriter) {
+	handler := func(w fake_http.ResponseWriter) {
 		w.Header().Set("Cache-Control", headerValue)
 	}
 
@@ -61,8 +63,8 @@ func TestCacheExpiresAndMaxAge(t *testing.T) {
 
 	maxAgeValue := fmt.Sprintf("max-age=%.0f", cacheDuration.Seconds())
 
-	handler := func(w http.ResponseWriter) {
-		expiresValue := time.Now().UTC().Add(expiresDuration).Format(http.TimeFormat)
+	handler := func(w fake_http.ResponseWriter) {
+		expiresValue := time.Now().UTC().Add(expiresDuration).Format(fake_http.TimeFormat)
 
 		w.Header().Set("Expires", expiresValue)
 		w.Header().Set("Cache-Control", maxAgeValue)
@@ -77,8 +79,8 @@ func TestCacheExpiresAndMaxAge(t *testing.T) {
 func TestCache404Response(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	handler := func(w http.ResponseWriter) {
-		w.WriteHeader(http.StatusNotFound)
+	handler := func(w fake_http.ResponseWriter) {
+		w.WriteHeader(fake_http.StatusNotFound)
 	}
 
 	testRequestsCachedIndefinite(t, handler)
@@ -103,12 +105,12 @@ func TestCacheVary(t *testing.T) {
 	for _, populateCache := range []bool{true, false} {
 		for _, headerVal := range headerVals {
 			if populateCache {
-				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 					w.Header().Set("Vary", reqHeaderName)
 					w.Header().Set(respHeaderName, r.Header.Get(reqHeaderName))
 				})
 			} else {
-				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 					t.Error("Request should not have made it to origin")
 					w.Header().Set(respHeaderName, "not cached")
 				})
@@ -257,13 +259,13 @@ func TestCacheUniqueQueryParams(t *testing.T) {
 	}
 
 	for _, populateCache := range []bool{true, false} {
-		for _, req := range []*http.Request{req1, req2} {
+		for _, req := range []*fake_http.Request{req1, req2} {
 			if populateCache {
-				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 					w.Header().Set(respHeaderName, r.URL.RawQuery)
 				})
 			} else {
-				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 					t.Errorf(
 						"Request with query param %q should not have made it to origin",
 						r.URL.RawQuery,
@@ -317,13 +319,13 @@ func TestCacheUniqueCaseSensitive(t *testing.T) {
 	}
 
 	for _, populateCache := range []bool{true, false} {
-		for _, req := range []*http.Request{req1, req2} {
+		for _, req := range []*fake_http.Request{req1, req2} {
 			if populateCache {
-				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 					w.Header().Set(respHeaderName, r.URL.Path)
 				})
 			} else {
-				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 					t.Errorf(
 						"Request with path %q should not have made it to origin",
 						r.URL.Path,
