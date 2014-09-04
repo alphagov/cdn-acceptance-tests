@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
@@ -120,6 +124,107 @@ func TestCacheVary(t *testing.T) {
 					respHeaderName,
 					headerVal,
 					recVal,
+				)
+			}
+		}
+	}
+}
+
+// Should deliver gzip compressed responses bodies to client requests with
+// the header `Accept-Encoding: gzip` and plaintext response bodies for
+// clients that don't. Some vendors:
+//   - appear to implment this independent of normal `Vary` headers
+//   - will make a single request w/gzip to origin and handle
+//     compression/decompression to the client themselves.
+func TestCacheAcceptEncodingGzip(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	const expectedBody = "may or may not be gzipped"
+	var reqAcceptEncoding string
+	var expectedContentEncoding string
+
+	// Tell the transport not to add Accept-Encoding headers and automatically
+	// decompress responses. Restore the setting after the test.
+	origClientDisableCompression := client.DisableCompression
+	client.DisableCompression = true
+	defer func() {
+		client.DisableCompression = origClientDisableCompression
+	}()
+
+	req := NewUniqueEdgeGET(t)
+
+	for _, populateCache := range []bool{true, false} {
+		for _, gzipContent := range []bool{false, true} {
+			if gzipContent {
+				reqAcceptEncoding = "gzip"
+				expectedContentEncoding = "gzip"
+			} else {
+				reqAcceptEncoding = "somethingelse"
+				expectedContentEncoding = ""
+			}
+
+			if populateCache {
+				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+					// NB: Some vendors don't appear to depend on this.
+					w.Header().Set("Vary", "Accept-Encoding")
+
+					// Don't switch on `gzipContent` because the edge may ask for gzip
+					// even if the client hasn't.
+					if r.Header.Get("Accept-Encoding") == "gzip" {
+						gzbuf := new(bytes.Buffer)
+						gzwriter := gzip.NewWriter(gzbuf)
+						gzwriter.Write([]byte(expectedBody))
+						gzwriter.Close()
+
+						w.Header().Set("Content-Encoding", "gzip")
+						w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+						w.Write(gzbuf.Bytes())
+					} else {
+						w.Write([]byte(expectedBody))
+					}
+				})
+			} else {
+				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+					t.Error("Request should not have made it to origin")
+					w.Write([]byte("uncached response"))
+				})
+			}
+
+			req.Header.Set("Accept-Encoding", reqAcceptEncoding)
+			resp := RoundTripCheckError(t, req)
+			defer resp.Body.Close()
+
+			if headerVal := resp.Header.Get("Content-Encoding"); headerVal != expectedContentEncoding {
+				t.Fatalf(
+					"Request received incorrect Content-Encoding header. Expected %q, got %q",
+					expectedContentEncoding,
+					headerVal,
+				)
+			}
+
+			var rawBody io.ReadCloser
+			if gzipContent {
+				var err error
+				rawBody, err = gzip.NewReader(resp.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer rawBody.Close()
+			} else {
+				rawBody = resp.Body
+			}
+
+			body, err := ioutil.ReadAll(rawBody)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if bodyStr := string(body); bodyStr != expectedBody {
+				t.Errorf(
+					"Request received incorrect response body. Expected %q, got %q",
+					expectedBody,
+					bodyStr,
 				)
 			}
 		}
