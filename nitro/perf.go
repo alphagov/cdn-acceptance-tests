@@ -25,7 +25,6 @@
 package nitro
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"runtime"
@@ -47,8 +46,9 @@ type B struct {
 	startAllocs uint64
 	startBytes  uint64
 	// The net total of this test after being run.
-	netAllocs uint64
-	netBytes  uint64
+	netAllocs   uint64
+	netBytes    uint64
+	description string
 }
 
 func (b *B) startTimer() {
@@ -95,21 +95,14 @@ func (b *B) resetTimer() {
 
 // Call this first to get the performance object
 // Should be called at the top of your function.
-func Initialize() *B {
-	flag.BoolVar(&AnalysisOn, "stepAnalysis", false, "display memory and timing of different steps of the program")
-
+func Initialize(description string) *B {
 	b := &B{}
 	b.initialTime = time.Now()
 	runtime.GC()
 	b.resetTimer()
 	b.startTimer()
+	b.description = description
 	return b
-}
-
-// Simple wrapper for Initialize
-// Maintain for legacy purposes
-func Initalize() *B {
-	return Initialize()
 }
 
 // Call perf.Step("step name") at each step in your
@@ -121,7 +114,7 @@ func (b *B) Step(str string) {
 	}
 
 	b.stopTimer()
-	fmt.Println(str + ":")
+	fmt.Println(b.description + ": " + str + ":")
 	fmt.Println(b.results().toString())
 
 	b.resetTimer()

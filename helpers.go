@@ -14,7 +14,13 @@ import (
 
 	"./fake_http"
 	"./fake_http/fake_httptest"
+	"./nitro"
 )
+
+func init() {
+	fake_http.Timer = nitro.Initialize("")
+	nitro.AnalysisOn = false
+}
 
 // CDNBackendServer is a backend server which will receive and respond to
 // requests from the CDN.
@@ -143,6 +149,8 @@ func NewUniqueEdgeGET(t *testing.T) *fake_http.Request {
 // calling test will be aborted so as not to operate on a nil response.
 func RoundTripCheckError(t *testing.T, req *fake_http.Request) *fake_http.Response {
 	start := time.Now()
+	nitro.AnalysisOn = true
+	fake_http.Timer = nitro.Initialize(req.Method + " " + req.URL.Path + "?" + req.URL.RawQuery)
 	resp, err := client.RoundTrip(req)
 	if duration := time.Since(start); duration > requestSlowThreshold {
 		t.Error("Slow request, took:", duration)

@@ -23,7 +23,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"../nitro"
 )
+
+var Timer *nitro.B
 
 // DefaultTransport is the default implementation of Transport and is
 // used by DefaultClient. It establishes network connections as needed
@@ -180,6 +184,7 @@ func (t *Transport) RoundTrip(req *Request) (resp *Response, err error) {
 	// pre-CONNECTed to https server.  In any case, we'll be ready
 	// to send it requests.
 	pconn, err := t.getConn(cm)
+	Timer.Step("CLIENT: *Transport.RoundTrip(): Got persistent connection")
 	if err != nil {
 		return nil, err
 	}
@@ -418,12 +423,14 @@ func (t *Transport) getConn(cm *connectMethod) (*persistConn, error) {
 	go func() {
 		pc, err := t.dialConn(cm)
 		dialc <- dialRes{pc, err}
+		Timer.Step("CLIENT: Called *Transport.dialConn()...")
 	}()
 
 	idleConnCh := t.getIdleConnCh(cm)
 	select {
 	case v := <-dialc:
 		// Our dial finished.
+		Timer.Step("CLIENT: Dial finished")
 		return v.pc, v.err
 	case pc := <-idleConnCh:
 		// Another request finished first and its net.Conn
@@ -434,6 +441,7 @@ func (t *Transport) getConn(cm *connectMethod) (*persistConn, error) {
 		go func() {
 			if v := <-dialc; v.err == nil {
 				t.putIdleConn(v.pc)
+				Timer.Step("CLIENT: Used connection from another completed request")
 			}
 		}()
 		return pc, nil
@@ -512,9 +520,11 @@ func (t *Transport) dialConn(cm *connectMethod) (*persistConn, error) {
 			}
 		}
 		conn = tls.Client(conn, cfg)
+		Timer.Step("CLIENT: Initialised TLS client")
 		if err = conn.(*tls.Conn).Handshake(); err != nil {
 			return nil, err
 		}
+		Timer.Step("CLIENT: Performed TLS handshake...")
 		if !cfg.InsecureSkipVerify {
 			if err = conn.(*tls.Conn).VerifyHostname(cfg.ServerName); err != nil {
 				return nil, err
@@ -703,6 +713,7 @@ func (pc *persistConn) readLoop() {
 		var resp *Response
 		if err == nil {
 			resp, err = ReadResponse(pc.br, rc.req)
+			Timer.Step("CLIENT: Read response")
 			if err == nil && resp.StatusCode == 100 {
 				// Skip any 100-continue for now.
 				// TODO(bradfitz): if rc.req had "Expect: 100-continue",
@@ -795,6 +806,7 @@ func (pc *persistConn) writeLoop() {
 				continue
 			}
 			err := wr.req.Request.write(pc.bw, pc.isProxy, wr.req.extra)
+			Timer.Step("CLIENT: Wrote to connection")
 			if err == nil {
 				err = pc.bw.Flush()
 			}

@@ -1139,6 +1139,7 @@ func (c *conn) serve() {
 			io.WriteString(c.rwc, "HTTP/1.1 400 Bad Request\r\n\r\n")
 			break
 		}
+		Timer.Step("SERVER: Read HTTP request")
 
 		// Expect 100 Continue support
 		req := w.req
@@ -1165,6 +1166,7 @@ func (c *conn) serve() {
 		// [*] Not strictly true: HTTP pipelining.  We could let them all process
 		// in parallel even if their responses need to be serialized.
 		serverHandler{c.server}.ServeHTTP(w, w.req)
+		Timer.Step("SERVER: Called request handler")
 		if c.hijacked() {
 			return
 		}
