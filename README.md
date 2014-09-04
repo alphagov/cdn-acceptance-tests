@@ -44,14 +44,14 @@ brew install go
 
 To run all the tests:
 ```sh
-go test -edgeHost cdn-vendor.example.com
+go test -edgeHost cdn-vendor.example.com -vendor cdn-vendor
 ```
 
 ...where `-edgeHost` specifies the CDN edge.
 
 To run a subset of tests based on a regex:
 ```sh
-go test -edgeHost cdn-vendor.example.com -run 'Test(Cache|NoCache)'
+go test -edgeHost cdn-vendor.example.com -run 'Test(Cache|NoCache)' -vendor cdn-vendor
 ```
 
 To see all available command-line options:
@@ -104,7 +104,7 @@ You may need to modify the configuration of the VM in
 To bring up the VM and point the tests at it:
 ```
 vagrant up && vagrant provision
-go test -edgeHost 172.16.20.10 -skipVerifyTLS
+go test -edgeHost 172.16.20.10 -skipVerifyTLS -vendor fastly
 ```
 
 Please note that this is not a complete substitute for the real thing. You
