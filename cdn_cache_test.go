@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -166,7 +165,7 @@ func TestCacheAcceptEncodingGzip(t *testing.T) {
 			}
 
 			if populateCache {
-				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 					// NB: Some vendors don't appear to depend on this.
 					w.Header().Set("Vary", "Accept-Encoding")
 
@@ -187,7 +186,7 @@ func TestCacheAcceptEncodingGzip(t *testing.T) {
 					}
 				})
 			} else {
-				originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				originServer.SwitchHandler(func(w fake_http.ResponseWriter, r *fake_http.Request) {
 					t.Error("Request should not have made it to origin")
 					w.Write([]byte("uncached response"))
 				})

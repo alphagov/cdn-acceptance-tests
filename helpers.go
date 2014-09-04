@@ -7,13 +7,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"testing"
 	"time"
 
 	"./fake_http"
+	"./fake_http/fake_httptest"
 )
 
 // CDNBackendServer is a backend server which will receive and respond to
@@ -23,7 +23,7 @@ type CDNBackendServer struct {
 	Port     int
 	TLSCerts []tls.Certificate
 	handler  func(w fake_http.ResponseWriter, r *fake_http.Request)
-	server   *httptest.Server
+	server   *fake_httptest.Server
 }
 
 // ServeHTTP satisfies the fake_http.HandlerFunc interface. Health check requests
@@ -82,7 +82,7 @@ func (s *CDNBackendServer) Start() {
 		s.Port, _ = strconv.Atoi(portStr)
 	}
 
-	s.server = httptest.NewUnstartedServer(s)
+	s.server = fake_httptest.NewUnstartedServer(s)
 	s.server.Listener = ln
 
 	if len(s.TLSCerts) > 0 {
