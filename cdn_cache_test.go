@@ -90,6 +90,10 @@ func TestCache404Response(t *testing.T) {
 func TestCacheVary(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
+	if vendorCloudflare {
+		t.Skip(notSupportedByVendor)
+	}
+
 	const reqHeaderName = "CustomThing"
 	const respHeaderName = "Reflected-" + reqHeaderName
 	headerVals := []string{
