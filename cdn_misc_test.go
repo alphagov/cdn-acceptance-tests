@@ -46,6 +46,7 @@ func TestMiscProtocolRedirect(t *testing.T) {
 	if dest := resp.Header.Get(headerName); dest != expectedURL {
 		t.Errorf(
 			"Received incorrect %q header. Expected %q, got %q",
+			headerName,
 			expectedURL,
 			dest,
 		)
