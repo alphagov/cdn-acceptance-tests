@@ -53,7 +53,7 @@ func TestReqHeaderXFFCreateAndAppend(t *testing.T) {
 	receivedHeaderVals := strings.Split(receivedHeaderVal, ",")
 	if count := len(receivedHeaderVals); count != len(expectedHeaderVals) {
 		t.Fatalf(
-			"Origin received %q header with wrong count of IPs. Expected %d, got %d: %q",
+			"Origin received %q header with wrong count of IPs. Expected %q, got %d: %q",
 			headerName,
 			expectedHeaderVals,
 			count,
