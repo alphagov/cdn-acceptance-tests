@@ -29,6 +29,9 @@ func TestMiscProtocolRedirect(t *testing.T) {
 	if len(req.URL.RawQuery) == 0 {
 		t.Fatal("Request must have query params to test preservation")
 	}
+	if req.URL.Fragment != "" {
+		t.Fatal("Request must not have fragment because preservation is not supported")
+	}
 
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
