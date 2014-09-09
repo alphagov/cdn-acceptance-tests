@@ -94,6 +94,56 @@ func (s *CDNBackendServer) Start() {
 	log.Printf("Started server on port %d", s.Port)
 }
 
+// CachedHostLookup caches DNS lookups for the given `Host` in order to
+// prevent us switching to another edge location in the middle of tests.
+type CachedHostLookup struct {
+	Host         string
+	hardCachedIP string
+}
+
+// lookup performs a DNS lookup and caches the first IP address returned.
+// Subsequent requests always return the cached address, preventing further
+// DNS requests.
+func (c *CachedHostLookup) lookup(host string) string {
+	if c.hardCachedIP == "" {
+		ipAddresses, err := net.LookupHost(host)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		c.hardCachedIP = ipAddresses[0]
+	}
+
+	return c.hardCachedIP
+}
+
+// Dial acts as a wrapper for `net.Dial`, ostensibly for use with
+// `http.Transport`. If the hostname matches `Host` then it will use the
+// cached address.
+func (c *CachedHostLookup) Dial(network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if host != c.Host {
+		return net.Dial(network, addr)
+	}
+
+	ipAddr := c.lookup(host)
+	return net.Dial(network, net.JoinHostPort(ipAddr, port))
+}
+
+// NewCachedDial returns the `Dial` function for a new CachedHostLookup
+// object with the given host.
+func NewCachedDial(host string) func(string, string) (net.Conn, error) {
+	c := CachedHostLookup{
+		Host: host,
+	}
+
+	return c.Dial
+}
+
 // Return a v4 (random) UUID string.
 // This might not be strictly RFC4122 compliant, but it will do. Credit:
 // https://groups.google.com/d/msg/golang-nuts/Rn13T6BZpgE/dBaYVJ4hB5gJ
