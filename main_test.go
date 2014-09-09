@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -46,8 +45,6 @@ var (
 	backendsByPriority []*CDNBackendServer
 )
 
-var hardCachedEdgeHostIp string
-
 // Setup clients and servers.
 func init() {
 
@@ -82,7 +79,7 @@ func init() {
 	client = &http.Transport{
 		ResponseHeaderTimeout: requestTimeout,
 		TLSClientConfig:       tlsOptions,
-		Dial:                  HardCachedHostDial,
+		Dial:                  NewCachedDial(*edgeHost),
 	}
 
 	var backendCerts []tls.Certificate
@@ -125,36 +122,4 @@ func init() {
 
 	log.Println("Confirming that CDN is healthy")
 	ResetBackends(backendsByPriority)
-
-}
-
-// CachedHostIpAddress looks up the IP address for a given host name,
-// and caches the first IP address returned. Subsequent requests always
-// return this address, preventing further DNS requests.
-func CachedHostIpAddress(host string) string {
-	if hardCachedEdgeHostIp == "" {
-		ipAddresses, err := net.LookupHost(host)
-		if err != nil {
-			log.Fatal(err)
-		}
-		hardCachedEdgeHostIp = ipAddresses[0]
-	}
-	return hardCachedEdgeHostIp
-}
-
-// HardCachedHostDial acts as a replacement Dial function, ostensibly for
-// http.Transport. It uses the IP address returned by CachedHostIpAddress
-// and passes that to the stock net.Dial function, to prevent repeat DNS
-// lookups of the provided hostname in addr. This is to prevent us from switching
-// from one CDN location to another mid-test.
-func HardCachedHostDial(network, addr string) (net.Conn, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if host != *edgeHost {
-		return net.Dial(network, addr)
-	}
-	ipAddr := CachedHostIpAddress(host)
-	return net.Dial(network, net.JoinHostPort(ipAddr, port))
 }
