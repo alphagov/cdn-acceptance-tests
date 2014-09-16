@@ -7,7 +7,9 @@ import (
 )
 
 // Should redirect from HTTP to HTTPS without hitting origin, whilst
-// preserving path and query params.
+// preserving path and query params. Fragments are not preserved because the
+// client should reapply them:
+// - http://tools.ietf.org/html/rfc7231#section-7.1.2
 func TestMiscProtocolRedirect(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
