@@ -95,6 +95,10 @@ sub vcl_fetch {
   if (beresp.http.Cache-Control ~ "no-(store|cache)") {
     return (hit_for_pass);
   }
+
+  if (beresp.http.Set-Cookie) {
+    return (deliver);
+  }
 }
 
 sub vcl_deliver {
