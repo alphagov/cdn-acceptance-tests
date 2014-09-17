@@ -75,6 +75,16 @@ func TestCacheExpiresAndMaxAge(t *testing.T) {
 	testRequestsCachedDuration(t, req, handler, cacheDuration)
 }
 
+// Should cache the response to a request with a `Cookie` header.
+func TestCacheHeaderCookie(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	req := NewUniqueEdgeGET(t)
+	req.Header.Set("Cookie", "sekret=mekmitasdigoat")
+
+	testRequestsCachedIndefinite(t, req, nil)
+}
+
 // Should cache a response with a `Set-Cookie` and no explicit
 // `Cache-Control` headers.
 func TestCacheHeaderSetCookie(t *testing.T) {
