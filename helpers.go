@@ -292,8 +292,12 @@ type responseCallback func(w http.ResponseWriter)
 
 // Wrapper for testRequestsCachedDuration() with a respTTL of zero.
 // Meaning that the cached object doesn't expire.
-func testRequestsCachedIndefinite(t *testing.T, respCB responseCallback) {
-	testRequestsCachedDuration(t, respCB, time.Duration(0))
+func testRequestsCachedIndefinite(
+	t *testing.T,
+	req *http.Request,
+	respCB responseCallback,
+) {
+	testRequestsCachedDuration(t, req, respCB, time.Duration(0))
 }
 
 // Helper function to make three requests and test responses. If respTTL is:
@@ -307,7 +311,12 @@ func testRequestsCachedIndefinite(t *testing.T, respCB responseCallback) {
 //
 // A responseCallback, if not nil, will be called to modify the response
 // before calling Write(body).
-func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL time.Duration) {
+func testRequestsCachedDuration(
+	t *testing.T,
+	req *http.Request,
+	respCB responseCallback,
+	respTTL time.Duration,
+) {
 	const responseCached = "first response"
 	const responseNotCached = "subsequent response"
 	var testCacheExpiry bool = respTTL > 0
@@ -321,9 +330,6 @@ func testRequestsCachedDuration(t *testing.T, respCB responseCallback, respTTL t
 	case false:
 		requestsExpectedCount = 1
 	}
-
-	url := fmt.Sprintf("https://%s/%s", *edgeHost, NewUUID())
-	req, _ := http.NewRequest("GET", url, nil)
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
 		if respCB != nil {

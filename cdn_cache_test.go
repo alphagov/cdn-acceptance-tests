@@ -18,7 +18,8 @@ import (
 func TestCacheFirstResponse(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
-	testRequestsCachedIndefinite(t, nil)
+	req := NewUniqueEdgeGET(t)
+	testRequestsCachedIndefinite(t, req, nil)
 }
 
 // Should cache responses for the period defined in a `Expires: n` response
@@ -33,7 +34,8 @@ func TestCacheExpires(t *testing.T) {
 		w.Header().Set("Expires", headerValue)
 	}
 
-	testRequestsCachedDuration(t, handler, cacheDuration)
+	req := NewUniqueEdgeGET(t)
+	testRequestsCachedDuration(t, req, handler, cacheDuration)
 }
 
 // Should cache responses for the period defined in a `Cache-Control:
@@ -48,7 +50,8 @@ func TestCacheCacheControlMaxAge(t *testing.T) {
 		w.Header().Set("Cache-Control", headerValue)
 	}
 
-	testRequestsCachedDuration(t, handler, cacheDuration)
+	req := NewUniqueEdgeGET(t)
+	testRequestsCachedDuration(t, req, handler, cacheDuration)
 }
 
 // Should cache responses for the period defined in a `Cache-Control:
@@ -68,7 +71,8 @@ func TestCacheExpiresAndMaxAge(t *testing.T) {
 		w.Header().Set("Cache-Control", maxAgeValue)
 	}
 
-	testRequestsCachedDuration(t, handler, cacheDuration)
+	req := NewUniqueEdgeGET(t)
+	testRequestsCachedDuration(t, req, handler, cacheDuration)
 }
 
 // Should cache a response with a `Set-Cookie` and no explicit
@@ -80,7 +84,8 @@ func TestCacheHeaderSetCookie(t *testing.T) {
 		w.Header().Set("Set-Cookie", "sekret=mekmitasdigoat")
 	}
 
-	testRequestsCachedIndefinite(t, handler)
+	req := NewUniqueEdgeGET(t)
+	testRequestsCachedIndefinite(t, req, handler)
 }
 
 // Should cache responses with a status code of 404. It's a common
@@ -93,7 +98,8 @@ func TestCache404Response(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}
 
-	testRequestsCachedIndefinite(t, handler)
+	req := NewUniqueEdgeGET(t)
+	testRequestsCachedIndefinite(t, req, handler)
 }
 
 // Should cache multiple distinct responses for the same URL when origin responds
