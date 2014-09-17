@@ -52,28 +52,6 @@ func TestNoCacheHeaderAuthorization(t *testing.T) {
 	testThreeRequestsNotCached(t, req, nil)
 }
 
-// Should not cache the response to a request with a `Cookie` header.
-func TestNoCacheHeaderCookie(t *testing.T) {
-	ResetBackends(backendsByPriority)
-
-	req := NewUniqueEdgeGET(t)
-	req.Header.Set("Cookie", "sekret=mekmitasdigoat")
-
-	testThreeRequestsNotCached(t, req, nil)
-}
-
-// Should not cache a response with a `Set-Cookie` header.
-func TestNoCacheHeaderSetCookie(t *testing.T) {
-	ResetBackends(backendsByPriority)
-
-	handler := func(h http.Header) {
-		h.Set("Set-Cookie", "sekret=mekmitasdigoat")
-	}
-
-	req := NewUniqueEdgeGET(t)
-	testThreeRequestsNotCached(t, req, handler)
-}
-
 // Should not cache responses with a `Cache-Control: no-cache` header.
 // Varnish doesn't respect this by default.
 func TestNoCacheCacheControlNoCache(t *testing.T) {

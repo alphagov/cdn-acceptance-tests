@@ -76,6 +76,10 @@ sub vcl_recv {
   }
 
   set req.http.True-Client-IP = req.http.Fastly-Client-IP;
+
+  if (req.http.Cookie) {
+    return (lookup);
+  }
 }
 
 sub vcl_fetch {
@@ -94,6 +98,10 @@ sub vcl_fetch {
 
   if (beresp.http.Cache-Control ~ "no-(store|cache)") {
     return (hit_for_pass);
+  }
+
+  if (beresp.http.Set-Cookie) {
+    return (deliver);
   }
 }
 
