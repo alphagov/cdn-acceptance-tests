@@ -71,6 +71,18 @@ func TestCacheExpiresAndMaxAge(t *testing.T) {
 	testRequestsCachedDuration(t, handler, cacheDuration)
 }
 
+// Should cache a response with a `Set-Cookie` and no explicit
+// `Cache-Control` headers.
+func TestCacheHeaderSetCookie(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	handler := func(w http.ResponseWriter) {
+		w.Header().Set("Set-Cookie", "sekret=mekmitasdigoat")
+	}
+
+	testRequestsCachedIndefinite(t, handler)
+}
+
 // Should cache responses with a status code of 404. It's a common
 // misconception that 404 responses shouldn't be cached; they should because
 // they can be expensive to generate.
