@@ -12,7 +12,7 @@ import (
 // is down and health check has *not* expired.
 // FIXME: This is not desired behaviour. We should serve from stale
 //        immediately and not replace the stale object in cache.
-func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
+func TestServeStaleOriginDownHealthCheckNotExpiredReplace(t *testing.T) {
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
@@ -92,7 +92,7 @@ func TestFailoverOriginDownHealthCheckNotExpiredReplaceStale(t *testing.T) {
 // check has expired, and object is beyond TTL but still in cache.
 // FIXME: This is not quite desired behaviour. We should not have to wait
 //				for the stale object to become available.
-func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
+func TestServeStaleOriginDownHealthCheckHasExpired(t *testing.T) {
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
@@ -147,7 +147,7 @@ func TestFailoverOriginDownHealthCheckHasExpiredServeStale(t *testing.T) {
 
 // Should serve stale object and not hit mirror(s) if origin returns a 5xx
 // response and object is beyond TTL but still in cache.
-func TestFailoverOrigin5xxServeStale(t *testing.T) {
+func TestServeStaleOrigin5xx(t *testing.T) {
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
