@@ -40,6 +40,16 @@ backend backup2 {
   }
 }
 
+backend sick_force_grace {
+  .host = "localhost";
+  .port = "1";
+  .probe = {
+    .request = "invalid";
+    .interval = 365d;
+    .initial = 0;
+  }
+}
+
 # Please add the minimal amount of code required to implement/mimic the
 # functionality you need to test. This shouldn't match our real config
 # line-by-line, otherwise we'll have trouble maintaining parity.
@@ -62,8 +72,9 @@ sub vcl_recv {
 
   set req.grace = 24h;
 
-  # Note that if (req.restarts == 1), we don't change the backend as
-  # we're attempting to serve from stale.
+  if (req.restarts > 0) {
+    set req.backend = sick_force_grace;
+  }
 
   if (req.restarts > 1) {
     # Don't serve from stale for backups
