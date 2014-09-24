@@ -28,7 +28,7 @@ func TestServeStaleOriginDown(t *testing.T) {
 
 	req := NewUniqueEdgeGET(t)
 
-	for requestCount := 1; requestCount < 3; requestCount++ {
+	for requestCount := 1; requestCount < 6; requestCount++ {
 		switch requestCount {
 		case 1: // Request 1 populates cache.
 			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
