@@ -8,10 +8,9 @@ import (
 	"time"
 )
 
-// Should serve stale object and not hit mirror(s) if origin is down and
-// object is beyond TTL but still in cache.
+// Should serve stale object and not hit any other backends, if origin
+// is down and object is beyond TTL but still in cache.
 func TestServeStaleOriginDown(t *testing.T) {
-	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	const expectedBody = "going off like stilton"
@@ -19,16 +18,13 @@ func TestServeStaleOriginDown(t *testing.T) {
 	const respTTLWithBuffer = 5 * respTTL
 	headerValue := fmt.Sprintf("max-age=%.0f", respTTL.Seconds())
 
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		name := backupServer1.Name
-		t.Errorf("Server %s received request and it shouldn't have", name)
-		w.Write([]byte(name))
-	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		name := backupServer2.Name
-		t.Errorf("Server %s received request and it shouldn't have", name)
-		w.Write([]byte(name))
-	})
+	// All backends except origin.
+	for _, backend := range backendsByPriority[1:] {
+		backend.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			t.Errorf("Server %s received request and it shouldn't have", backend.Name)
+			w.Write([]byte(backend.Name))
+		})
+	}
 
 	req := NewUniqueEdgeGET(t)
 
@@ -62,10 +58,9 @@ func TestServeStaleOriginDown(t *testing.T) {
 	}
 }
 
-// Should serve stale object and not hit mirror(s) if origin returns a 5xx
-// response and object is beyond TTL but still in cache.
+// Should serve stale object and not hit any other backends, if origin
+// returns a 5xx response and object is beyond TTL but still in cache.
 func TestServeStaleOrigin5xx(t *testing.T) {
-	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
 	const expectedResponseStale = "going off like stilton"
@@ -77,16 +72,13 @@ func TestServeStaleOrigin5xx(t *testing.T) {
 	const waitSaintMode = time.Duration(5 * time.Second)
 	headerValue := fmt.Sprintf("max-age=%.0f", respTTL.Seconds())
 
-	backupServer1.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		name := backupServer1.Name
-		t.Errorf("Server %s received request and it shouldn't have", name)
-		w.Write([]byte(name))
-	})
-	backupServer2.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		name := backupServer2.Name
-		t.Errorf("Server %s received request and it shouldn't have", name)
-		w.Write([]byte(name))
-	})
+	// All backends except origin.
+	for _, backend := range backendsByPriority[1:] {
+		backend.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+			t.Errorf("Server %s received request and it shouldn't have", backend.Name)
+			w.Write([]byte(backend.Name))
+		})
+	}
 
 	req := NewUniqueEdgeGET(t)
 
