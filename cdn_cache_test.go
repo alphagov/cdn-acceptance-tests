@@ -75,6 +75,42 @@ func TestCacheExpiresAndMaxAge(t *testing.T) {
 	testRequestsCachedDuration(t, req, handler, cacheDuration)
 }
 
+// This tests documents actual behaviour; even though it contravenes RFC 7234 section 5.2.1.1:
+// http://tools.ietf.org/html/rfc7234#section-5.2.1.1
+// Serves a cached response to a request with a `Cache-Control: max-age=0` header.
+func TestCacheReqHeaderMaxAge(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	req := NewUniqueEdgeGET(t)
+	req.Header.Set("Cache-Control", "max-age=0")
+
+	testRequestsCachedIndefinite(t, req, nil)
+}
+
+// This tests documents actual behaviour; even though it contravenes RFC 7234 section 5.2.1.4:
+// http://tools.ietf.org/html/rfc7234#section-5.2.1.4
+// Serves a cached response to a request with a `Cache-Control: no-cache` header.
+func TestCacheReqHeaderNoCache(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	req := NewUniqueEdgeGET(t)
+	req.Header.Set("Cache-Control", "no-cache")
+
+	testRequestsCachedIndefinite(t, req, nil)
+}
+
+// This tests documents actual behaviour; even though it contravenes RFC 7234 section 5.2.1.5:
+// http://tools.ietf.org/html/rfc7234#section-5.2.1.5
+// Serves a cached response to a request with a `Cache-Control: no-store` header.
+func TestCacheReqHeaderNoStore(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	req := NewUniqueEdgeGET(t)
+	req.Header.Set("Cache-Control", "no-store")
+
+	testRequestsCachedIndefinite(t, req, nil)
+}
+
 // Should cache the response to a request with a `Cookie` header.
 func TestCacheHeaderCookie(t *testing.T) {
 	ResetBackends(backendsByPriority)
