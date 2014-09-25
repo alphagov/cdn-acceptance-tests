@@ -130,7 +130,7 @@ func (c *CachedHostLookup) Dial(network, addr string) (net.Conn, error) {
 		return net.Dial(network, addr)
 	}
 
-	ipAddr := c.lookup(host)
+	ipAddr := "185.31.17.144"
 	return net.Dial(network, net.JoinHostPort(ipAddr, port))
 }
 
