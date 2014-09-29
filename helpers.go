@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/tls"
 	"fmt"
@@ -421,6 +422,43 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 				requestCount+1,
 				expectedBody,
 				receivedBody,
+			)
+		}
+	}
+}
+
+// testResponseNotManipulated configures origin to respond to a request with
+// the contents of fixture file and a given `Content-Type`. It then makes a
+// request and asserts that the response body matches the original fixture
+// file, meaning that the CDN hasn't manipulated it in any way.
+func testResponseNotManipulated(t *testing.T, fixtureFile string, contentType string) {
+	fixtureData, err := ioutil.ReadFile(fixtureFile)
+	if err != nil {
+		t.Fatalf("Unable load fixture file %q", fixtureFile)
+	}
+
+	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", contentType)
+		w.Write(fixtureData)
+	})
+
+	req := NewUniqueEdgeGET(t)
+	resp := RoundTripCheckError(t, req)
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(body, fixtureData) {
+		t.Error("Response body did not match fixture")
+
+		if bytes.Compare(body, fixtureData) != 0 {
+			t.Errorf(
+				"Response body sizes for debug purposes. Expected %d, got %d",
+				len(fixtureData),
+				len(body),
 			)
 		}
 	}
