@@ -88,7 +88,7 @@ sub vcl_recv {
 
   set req.http.True-Client-IP = req.http.Fastly-Client-IP;
 
-  if (req.http.Cookie) {
+  if (req.http.Cookie || req.http.Authorization) {
     return (lookup);
   }
 }
