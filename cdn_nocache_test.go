@@ -42,16 +42,6 @@ func TestNoCachePOST(t *testing.T) {
 	testThreeRequestsNotCached(t, req, nil)
 }
 
-// Should not cache the response to a request with a `Authorization` header.
-func TestNoCacheHeaderAuthorization(t *testing.T) {
-	ResetBackends(backendsByPriority)
-
-	req := NewUniqueEdgeGET(t)
-	req.Header.Set("Authorization", "Basic YXJlbnR5b3U6aW5xdWlzaXRpdmU=")
-
-	testThreeRequestsNotCached(t, req, nil)
-}
-
 // Should not cache responses with a `Cache-Control: no-cache` header.
 // Varnish doesn't respect this by default.
 func TestNoCacheCacheControlNoCache(t *testing.T) {
