@@ -134,6 +134,19 @@ func TestCacheHeaderSetCookie(t *testing.T) {
 	testRequestsCachedIndefinite(t, req, handler)
 }
 
+// Should cache the response to a request with a `Authorization` header.
+// This tests documents actual behaviour; even though it appears to
+// contravene RFC 7234 section 3.2:
+// http://tools.ietf.org/html/rfc7234#section-3.2
+func TestCacheHeaderAuthorization(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	req := NewUniqueEdgeGET(t)
+	req.Header.Set("Authorization", "Basic YXJlbnR5b3U6aW5xdWlzaXRpdmU=")
+
+	testRequestsCachedIndefinite(t, req, nil)
+}
+
 // Should cache responses with a status code of 404. It's a common
 // misconception that 404 responses shouldn't be cached; they should because
 // they can be expensive to generate.
