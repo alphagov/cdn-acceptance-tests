@@ -433,8 +433,9 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 // testResponseNotManipulated configures origin to respond to a request with
 // the contents of fixture file. It then makes a request and asserts that
 // the response body matches the original fixture file, meaning that the CDN
-// hasn't manipulated it in any way. The `Content-Type` is set according to
-// the fixture's file extension to ensure that the CDN detects it correctly.
+// hasn't manipulated it in any way. The `Content-Type` and request path are
+// set according to the fixture's file extension to ensure that the CDN
+// detects it correctly.
 func testResponseNotManipulated(t *testing.T, fixtureFile string) {
 	fixtureData, err := ioutil.ReadFile(fixtureFile)
 	if err != nil {
@@ -452,6 +453,8 @@ func testResponseNotManipulated(t *testing.T, fixtureFile string) {
 	})
 
 	req := NewUniqueEdgeGET(t)
+	req.URL.Path = "/" + filepath.Base(fixtureFile)
+
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
