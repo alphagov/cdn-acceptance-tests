@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -428,13 +431,20 @@ func testThreeRequestsNotCached(t *testing.T, req *http.Request, headerCB respon
 }
 
 // testResponseNotManipulated configures origin to respond to a request with
-// the contents of fixture file and a given `Content-Type`. It then makes a
-// request and asserts that the response body matches the original fixture
-// file, meaning that the CDN hasn't manipulated it in any way.
-func testResponseNotManipulated(t *testing.T, fixtureFile string, contentType string) {
+// the contents of fixture file. It then makes a request and asserts that
+// the response body matches the original fixture file, meaning that the CDN
+// hasn't manipulated it in any way. The `Content-Type` and request path are
+// set according to the fixture's file extension to ensure that the CDN
+// detects it correctly.
+func testResponseNotManipulated(t *testing.T, fixtureFile string) {
 	fixtureData, err := ioutil.ReadFile(fixtureFile)
 	if err != nil {
 		t.Fatalf("Unable load fixture file %q", fixtureFile)
+	}
+
+	contentType := mime.TypeByExtension(filepath.Ext(fixtureFile))
+	if contentType == "" || strings.Contains(contentType, "text/plain") {
+		t.Fatalf("Unable to determine fixture Content-Type. Got %q", contentType)
 	}
 
 	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
@@ -443,6 +453,8 @@ func testResponseNotManipulated(t *testing.T, fixtureFile string, contentType st
 	})
 
 	req := NewUniqueEdgeGET(t)
+	req.URL.Path = "/" + filepath.Base(fixtureFile)
+
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
