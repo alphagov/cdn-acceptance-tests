@@ -76,20 +76,14 @@ func TestReqHeaderXFFCreateAndAppend(t *testing.T) {
 }
 
 // Should create a True-Client-IP header containing the client's IP
-// address, discarding the value provided in the original request.
+// address, discarding the value provided in the original request. The name
+// of this header must be consistent across all vendors.
 func TestReqHeaderUnspoofableClientIP(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const sentHeaderVal = "203.0.113.99"
-	var headerName string
+	const headerName = "True-Client-IP"
 	var receivedHeaderVal string
-
-	switch {
-	case vendorCloudflare, vendorFastly:
-		headerName = "True-Client-IP"
-	default:
-		t.Fatal(notImplementedForVendor)
-	}
 
 	sentHeaderIP := net.ParseIP(sentHeaderVal)
 
