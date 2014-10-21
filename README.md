@@ -35,6 +35,10 @@ connect to.
 It will not configure the CDN service for you; you'll need to do so,
 pointing it at the machine that will be running the tests.
 
+For more information please see this post on the GDS Technology blog:
+
+- https://gdstechnology.blog.gov.uk/2014/10/01/cdn-acceptance-testing/
+
 ## Running
 
 You will need the Go 1.x runtime installed. To install this on OS X:
