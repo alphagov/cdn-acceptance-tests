@@ -11,6 +11,54 @@ import (
 // Test that useful common cache-related parameters are sent to the
 // client by this CDN provider.
 
+// Should set an Age header, when origin doesn't provide one, representing
+// how long the object has been in edge's cache.
+func TestRespHeaderAgeFromEdge(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	const secondsToWaitBetweenRequests = 5
+	expectedHeaderVals := []string{
+		"0",
+		fmt.Sprintf("%d", secondsToWaitBetweenRequests),
+	}
+
+	req := NewUniqueEdgeGET(t)
+
+	for requestCount, expectedHeaderVal := range expectedHeaderVals {
+		requestCount = requestCount + 1
+		switch requestCount {
+		case 1:
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", "max-age=1800, public")
+				w.Write([]byte("cacheable request"))
+			})
+		case 2:
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				t.Error("Origin received request and it shouldn't have")
+			})
+
+			// Wait for Age to increment.
+			time.Sleep(time.Duration(secondsToWaitBetweenRequests) * time.Second)
+		}
+
+		resp := RoundTripCheckError(t, req)
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("Request %d received incorrect status %q", requestCount, resp.Status)
+		}
+
+		if val := resp.Header.Get("Age"); val != expectedHeaderVal {
+			t.Errorf(
+				"Request %d received incorrect Age header. Got %q, expected %q",
+				requestCount,
+				val,
+				expectedHeaderVal,
+			)
+		}
+	}
+}
+
 // Should propagate an Age header from origin and then increment it for the
 // time it is in edge's cache. This assumes no request/response delay:
 // http://tools.ietf.org/html/rfc7234#section-4.2.3
