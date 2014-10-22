@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"testing"
 	"time"
 )
@@ -12,60 +11,102 @@ import (
 // Test that useful common cache-related parameters are sent to the
 // client by this CDN provider.
 
+// Should set an Age header, when origin doesn't provide one, representing
+// how long the object has been in edge's cache.
+func TestRespHeaderAgeFromEdge(t *testing.T) {
+	ResetBackends(backendsByPriority)
+
+	const secondsToWaitBetweenRequests = 5
+	expectedHeaderVals := []string{
+		"0",
+		fmt.Sprintf("%d", secondsToWaitBetweenRequests),
+	}
+
+	req := NewUniqueEdgeGET(t)
+
+	for requestCount, expectedHeaderVal := range expectedHeaderVals {
+		requestCount = requestCount + 1
+		switch requestCount {
+		case 1:
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Cache-Control", "max-age=1800, public")
+				w.Write([]byte("cacheable request"))
+			})
+		case 2:
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				t.Error("Origin received request and it shouldn't have")
+			})
+
+			// Wait for Age to increment.
+			time.Sleep(time.Duration(secondsToWaitBetweenRequests) * time.Second)
+		}
+
+		resp := RoundTripCheckError(t, req)
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("Request %d received incorrect status %q", requestCount, resp.Status)
+		}
+
+		if val := resp.Header.Get("Age"); val != expectedHeaderVal {
+			t.Errorf(
+				"Request %d received incorrect Age header. Got %q, expected %q",
+				requestCount,
+				val,
+				expectedHeaderVal,
+			)
+		}
+	}
+}
+
 // Should propagate an Age header from origin and then increment it for the
-// time it's in cache.
-func TestRespHeaderAge(t *testing.T) {
+// time it is in edge's cache. This assumes no request/response delay:
+// http://tools.ietf.org/html/rfc7234#section-4.2.3
+func TestRespHeaderAgeFromOrigin(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
 	const originAgeInSeconds = 100
 	const secondsToWaitBetweenRequests = 5
-	const expectedAgeInSeconds = originAgeInSeconds + secondsToWaitBetweenRequests
-	requestReceivedCount := 0
-
-	originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
-		if requestReceivedCount == 0 {
-			w.Header().Set("Cache-Control", "max-age=1800, public")
-			w.Header().Set("Age", fmt.Sprintf("%d", originAgeInSeconds))
-			w.Write([]byte("cacheable request"))
-		} else {
-			t.Error("Unexpected subsequent request received at Origin")
-		}
-		requestReceivedCount++
-	})
+	expectedHeaderVals := []string{
+		fmt.Sprintf("%d", originAgeInSeconds),
+		fmt.Sprintf("%d", originAgeInSeconds + secondsToWaitBetweenRequests),
+	}
 
 	req := NewUniqueEdgeGET(t)
-	resp := RoundTripCheckError(t, req)
-	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		t.Fatalf("Edge returned an unexpected status: %q", resp.Status)
-	}
+	for requestCount, expectedHeaderVal := range expectedHeaderVals {
+		requestCount = requestCount + 1
+		switch requestCount {
+		case 1:
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Age", expectedHeaderVal)
+				w.Header().Set("Cache-Control", "max-age=1800, public")
+				w.Write([]byte("cacheable request"))
+			})
+		case 2:
+			originServer.SwitchHandler(func(w http.ResponseWriter, r *http.Request) {
+				t.Error("Origin received request and it shouldn't have")
+			})
 
-	// wait a little bit. Edge should update the Age header, we know Origin will not
-	time.Sleep(time.Duration(secondsToWaitBetweenRequests) * time.Second)
-	resp = RoundTripCheckError(t, req)
-	defer resp.Body.Close()
+			// Wait for Age to increment.
+			time.Sleep(time.Duration(secondsToWaitBetweenRequests) * time.Second)
+		}
 
-	if resp.StatusCode != 200 {
-		t.Fatalf("Edge returned an unexpected status: %q", resp.Status)
-	}
+		resp := RoundTripCheckError(t, req)
+		defer resp.Body.Close()
 
-	edgeAgeHeader := resp.Header.Get("Age")
-	if edgeAgeHeader == "" {
-		t.Fatal("Age Header is not set")
-	}
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("Request %d received incorrect status %q", requestCount, resp.Status)
+		}
 
-	edgeAgeInSeconds, convErr := strconv.Atoi(edgeAgeHeader)
-	if convErr != nil {
-		t.Fatal(convErr)
-	}
-
-	if edgeAgeInSeconds != expectedAgeInSeconds {
-		t.Errorf(
-			"Age header from Edge is not as expected. Got %q, expected '%d'",
-			edgeAgeHeader,
-			expectedAgeInSeconds,
-		)
+		if val := resp.Header.Get("Age"); val != expectedHeaderVal {
+			t.Errorf(
+				"Request %d received incorrect Age header. Got %q, expected %q",
+				requestCount,
+				val,
+				expectedHeaderVal,
+			)
+		}
 	}
 }
 
