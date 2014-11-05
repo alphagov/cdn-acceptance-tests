@@ -144,7 +144,7 @@ func (c *CachedHostLookup) Dial(network, addr string) (net.Conn, error) {
 		return net.Dial(network, addr)
 	}
 
-	ipAddr := c.lookup(host)
+	ipAddr := "185.31.18.144"
 	return net.Dial(network, net.JoinHostPort(ipAddr, port))
 }
 
@@ -205,7 +205,11 @@ func NewUniqueEdgeGET(t *testing.T) *http.Request {
 // or cookies, and return the response. If there are any errors then the
 // calling test will be aborted so as not to operate on a nil response.
 func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
+	req.Header.Set("notHealthCheck", "true")
 	start := time.Now()
+	epoch := strconv.FormatInt(time.Now().UnixNano(), 10)
+	t.Log("Request Start-Time:", epoch)
+	req.Header.Set("Start-Time", epoch)
 	resp, err := client.RoundTrip(req)
 	if duration := time.Since(start); duration > requestSlowThreshold {
 		t.Error("Slow request, took:", duration)

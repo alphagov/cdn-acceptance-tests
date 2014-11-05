@@ -24,6 +24,7 @@ var (
 	// This only works with tests that use RoundTripCheckError(), that either
 	// are either failing or run with the -v flag.
 	debugResp = flag.Bool("debugResp", false, "Log responses for debugging")
+	skipTLS       = flag.Bool("skipTLS", false, "Hack to disable TLS backends")
 )
 
 var (
