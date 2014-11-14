@@ -4,7 +4,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "ubuntu/trusty64"
+  config.vm.box = "puppetlabs/ubuntu-14.04-64-puppet"
 
   if Vagrant.has_plugin?("vagrant-cachier")
     config.cache.auto_detect = true
