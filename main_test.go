@@ -27,8 +27,8 @@ var (
 )
 
 var (
-	vendorFastly     bool = false
-	vendorCloudflare bool = false
+	vendorFastly     = false
+	vendorCloudflare = false
 )
 
 // These consts and vars are available to all tests.
