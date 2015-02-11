@@ -263,10 +263,10 @@ func TestRespHeaderXCacheHitsAppend(t *testing.T) {
 		}
 	})
 
-	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
+	sourceURL := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
 
 	// Get first request, will come from origin. Edge Hit Count 0
-	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	req, _ := http.NewRequest("GET", sourceURL, nil)
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
