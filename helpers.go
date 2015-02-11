@@ -148,7 +148,7 @@ func NewCachedDial(host string) func(string, string) (net.Conn, error) {
 	return c.Dial
 }
 
-// Return a v4 (random) UUID string.
+// NewUUID returns a v4 (random) UUID string.
 // This might not be strictly RFC4122 compliant, but it will do. Credit:
 // https://groups.google.com/d/msg/golang-nuts/Rn13T6BZpgE/dBaYVJ4hB5gJ
 func NewUUID() string {
@@ -160,10 +160,10 @@ func NewUUID() string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", bs[0:4], bs[4:6], bs[6:8], bs[8:10], bs[10:])
 }
 
-// Construct a new URL for edge. Always uses HTTPS. A random UUID is used in
-// the path to ensure that it hasn't previously been cached. It is passed as
-// a query param for / so that some of the tests can be run against a
-// service that hasn't been configured to point at our test backends.
+// NewUniqueEdgeURL constructs a new URL for edge. Always uses HTTPS. A random
+// UUID is used in the path to ensure that it hasn't previously been cached. It
+// is passed as a query param for / so that some of the tests can be run
+// against a service that hasn't been configured to point at our test backends.
 func NewUniqueEdgeURL() string {
 	url := url.URL{
 		Scheme: "https",
@@ -177,8 +177,8 @@ func NewUniqueEdgeURL() string {
 	return url.String()
 }
 
-// Construct a GET request (but not perform it) against edge. Uses
-// NewUniqueEdgeURL() to ensure that it hasn't previously been cached. The
+// NewUniqueEdgeGET constructs a GET request (but not perform it) against edge.
+// Uses NewUniqueEdgeURL() to ensure that it hasn't previously been cached. The
 // request method field of the returned object can be later modified if
 // required.
 func NewUniqueEdgeGET(t *testing.T) *http.Request {
@@ -191,9 +191,10 @@ func NewUniqueEdgeGET(t *testing.T) *http.Request {
 	return req
 }
 
-// Make an HTTP request using http.RoundTrip, which doesn't handle redirects
-// or cookies, and return the response. If there are any errors then the
-// calling test will be aborted so as not to operate on a nil response.
+// RoundTripCheckError makes an HTTP request using http.RoundTrip, which
+// doesn't handle redirects or cookies, and return the response. If there are
+// any errors then the calling test will be aborted so as not to operate on a
+// nil response.
 func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 	start := time.Now()
 	resp, err := client.RoundTrip(req)
@@ -210,9 +211,9 @@ func RoundTripCheckError(t *testing.T, req *http.Request) *http.Response {
 	return resp
 }
 
-// Reset all backends, ensuring that they are started, have the default
-// handler function, and that the edge considers them healthy. It may take
-// some time because we need to receive and respond to enough probe health
+// ResetBackends resets all backends, ensuring that they are started, have the
+// default handler function, and that the edge considers them healthy. It may
+// take some time because we need to receive and respond to enough probe health
 // checks to be considered up.
 func ResetBackends(backends []*CDNBackendServer) {
 	remainingBackendsStopped := false
