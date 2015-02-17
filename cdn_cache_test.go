@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-// Should cache first response for an unspecified period of time if when it
-// doesn't specify it's own cache headers. Subsequent requests should return
+// Should cache first response for an unspecified period of time when it
+// doesn't specify its own cache headers. Subsequent requests should return
 // a cached response.
 func TestCacheFirstResponse(t *testing.T) {
 	ResetBackends(backendsByPriority)
@@ -211,10 +211,10 @@ func TestCacheVary(t *testing.T) {
 	}
 }
 
-// Should deliver gzip compressed responses bodies to client requests with
+// Should deliver gzip compressed response bodies to client requests with
 // the header `Accept-Encoding: gzip` and plaintext response bodies for
 // clients that don't. Some vendors:
-//   - appear to implment this independent of normal `Vary` headers
+//   - appear to implement this independent of normal `Vary` headers
 //   - will make a single request w/gzip to origin and handle
 //     compression/decompression to the client themselves.
 func TestCacheAcceptEncodingGzip(t *testing.T) {
