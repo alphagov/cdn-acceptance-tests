@@ -69,7 +69,7 @@ func TestRespHeaderAgeFromOrigin(t *testing.T) {
 	const secondsToWaitBetweenRequests = 5
 	expectedHeaderVals := []string{
 		fmt.Sprintf("%d", originAgeInSeconds),
-		fmt.Sprintf("%d", originAgeInSeconds + secondsToWaitBetweenRequests),
+		fmt.Sprintf("%d", originAgeInSeconds+secondsToWaitBetweenRequests),
 	}
 
 	req := NewUniqueEdgeGET(t)
