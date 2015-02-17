@@ -176,6 +176,10 @@ func TestFailoverOrigin5xxBackOff(t *testing.T) {
 // Should fallback to first mirror if origin is down and object is not in
 // cache (active or stale).
 func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
+	if vendorSimple {
+		t.Skip(notSupportedByVendor)
+	}
+
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
@@ -220,6 +224,10 @@ func TestFailoverOriginDownUseFirstMirror(t *testing.T) {
 // Should fallback to first mirror if origin returns 5xx response and object
 // is not in cache (active or stale).
 func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
+	if vendorSimple {
+		t.Skip(notSupportedByVendor)
+	}
+
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
@@ -281,6 +289,10 @@ func TestFailoverOrigin5xxUseFirstMirror(t *testing.T) {
 // Should fallback to second mirror if both origin and first mirror are
 // down.
 func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
+	if vendorSimple {
+		t.Skip(notSupportedByVendor)
+	}
+
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
@@ -321,6 +333,10 @@ func TestFailoverOriginDownFirstMirrorDownUseSecondMirror(t *testing.T) {
 // Should fallback to second mirror if both origin and first mirror return
 // 5xx responses.
 func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
+	if vendorSimple {
+		t.Skip(notSupportedByVendor)
+	}
+
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 
@@ -388,6 +404,10 @@ func TestFailoverOrigin5xxFirstMirror5xxUseSecondMirror(t *testing.T) {
 // No-Fallback header. In order to allow applications to present their own
 // error pages.
 func TestFailoverNoFallbackHeader(t *testing.T) {
+	if vendorSimple {
+		t.Skip(notSupportedByVendor)
+	}
+
 	checkForSkipFailover(t)
 	ResetBackends(backendsByPriority)
 

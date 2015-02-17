@@ -29,6 +29,7 @@ var (
 var (
 	vendorFastly     = false
 	vendorCloudflare = false
+	vendorSimple     = false
 )
 
 // These consts and vars are available to all tests.
@@ -66,6 +67,10 @@ func init() {
 		vendorCloudflare = true
 	case "fastly":
 		vendorFastly = true
+	case "simple":
+		// A "simple" CDN vendor is one which will serve GOV.UK without the fail to mirror
+		// logic that Fastly provides.
+		vendorSimple = true
 	case "":
 		log.Fatalln("No vendor specified; must be either 'cloudflare' or 'fastly'")
 	default:
