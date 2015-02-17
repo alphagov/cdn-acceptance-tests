@@ -23,7 +23,7 @@ func TestNoManipulationCSS(t *testing.T) {
 	testResponseNotManipulated(t, "fixtures/golang.css")
 }
 
-// Should not manipulate Javascript content in response bodies.
+// Should not manipulate JavaScript content in response bodies.
 func TestNoManipulationJS(t *testing.T) {
 	ResetBackends(backendsByPriority)
 
