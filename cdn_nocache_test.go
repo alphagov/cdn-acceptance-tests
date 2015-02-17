@@ -18,9 +18,9 @@ func TestNoCacheNewRequestOrigin(t *testing.T) {
 		}
 	})
 
-	sourceUrl := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
+	sourceURL := fmt.Sprintf("https://%s/%s", *edgeHost, uuid)
 
-	req, _ := http.NewRequest("GET", sourceUrl, nil)
+	req, _ := http.NewRequest("GET", sourceURL, nil)
 	resp := RoundTripCheckError(t, req)
 	defer resp.Body.Close()
 
