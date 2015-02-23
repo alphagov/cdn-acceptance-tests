@@ -28,7 +28,7 @@ func TestFailoverErrorPageAllServersDown(t *testing.T) {
 
 	switch {
 	case vendorFastly:
-		expectedBody = "Guru Mediation"
+		expectedBody = "Sorry! We're having issues right now. Please try again later."
 	default:
 		expectedBody = "Guru Meditation"
 	}
