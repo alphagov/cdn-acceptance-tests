@@ -30,11 +30,13 @@ type CDNBackendServer struct {
 }
 
 // ServeHTTP satisfies the http.HandlerFunc interface. Health check requests
-// for `HEAD /` are always served 200 responses. Other requests are passed
+// for `HEAD` are always served 200 responses. Other requests are passed
 // off to a custom handler provided by SwitchHandler.
 func (s *CDNBackendServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Backend-Name", s.Name)
-	if r.Method == "HEAD" && r.URL.Path == "/" {
+
+        // swallow healtheck requests
+	if r.Method == "HEAD" {
 		w.Header().Set("PING", "PONG")
 		return
 	}
