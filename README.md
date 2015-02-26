@@ -63,6 +63,15 @@ To see all available command-line options:
 go test -usage
 ```
 
+## Adapting the tests to your own configuration
+
+You may need to make some changes to adapt the tests to your specific configuration.
+
+- The tests [disregard all `HEAD`
+  requests](https://github.com/alphagov/cdn-acceptance-tests/blob/f4ad7291ad2f49c549567664d7e4355b2dfc43e4/helpers.go#L37-L40)
+  as healthcheck probes. You may need to modify this or filter those on other
+  HTTP request headers depending on how your edge sends healthcheck probes.
+
 ## Writing tests
 
 When writing new tests please be sure to:
